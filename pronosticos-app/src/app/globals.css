@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-geist);
+  --color-wc-navy: #011E41;
+  --color-wc-navy-light: #012B5C;
+  --color-wc-red: #C8102E;
+  --color-wc-red-dark: #A00C24;
+  --color-wc-gold: #D4AF37;
+}
