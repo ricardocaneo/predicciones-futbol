@@ -62,9 +62,9 @@ export default async function PublicProfilePage({
 
   type TeamJoin   = { name: string; country_code: string } | null;
   type PlayerJoin = { name: string; teams: { country_code: string } | null } | null;
-  const champion   = masterTouchRow?.champion   as TeamJoin;
-  const runnerUp   = masterTouchRow?.runner_up  as TeamJoin;
-  const goldenBoot = masterTouchRow?.golden_boot as PlayerJoin;
+  const champion   = masterTouchRow?.champion   as unknown as TeamJoin;
+  const runnerUp   = masterTouchRow?.runner_up  as unknown as TeamJoin;
+  const goldenBoot = masterTouchRow?.golden_boot as unknown as PlayerJoin;
 
   const predictions: PredWithMatch[] = (predRows ?? []).map((row) => {
     const matchRow = row.matches as unknown as MatchRow;
