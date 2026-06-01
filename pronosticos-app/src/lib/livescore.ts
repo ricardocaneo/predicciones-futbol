@@ -205,7 +205,7 @@ export async function getLiveMatchData(externalId: string): Promise<{
   const liveData = await lsGet<unknown>("/scores/live.json");
   // El feed live puede tener id=ID_LIVE y fixture_id=ID_FIXTURE; buscamos por ambos
   const match = extractMatches(liveData).find(
-    (m) => String(m.id) === externalId || String((m as Record<string, unknown>).fixture_id) === externalId
+    (m) => String(m.id) === externalId || String((m as unknown as Record<string, unknown>).fixture_id) === externalId
   );
   if (!match) return null;
 

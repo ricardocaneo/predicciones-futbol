@@ -73,7 +73,7 @@ export default async function PartidosPage() {
     matchRows
       .filter((r) => {
         if (r.status !== "finished") return false;
-        const updatedAt = (r as Record<string, unknown>).updated_at as string | null;
+        const updatedAt = (r as unknown as Record<string, unknown>).updated_at as string | null;
         if (!updatedAt) return false;
         return now - new Date(updatedAt).getTime() <= GRACE_MS;
       })
