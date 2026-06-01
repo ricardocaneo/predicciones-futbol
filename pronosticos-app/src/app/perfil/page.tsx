@@ -40,9 +40,9 @@ export default async function PerfilPage() {
 
   type TeamJoin   = { name: string; country_code: string } | null;
   type PlayerJoin = { name: string; teams: { country_code: string } | null } | null;
-  const champion   = mt?.champion   as TeamJoin;
-  const runnerUp   = mt?.runner_up  as TeamJoin;
-  const goldenBoot = mt?.golden_boot as PlayerJoin;
+  const champion   = mt?.champion   as unknown as TeamJoin;
+  const runnerUp   = mt?.runner_up  as unknown as TeamJoin;
+  const goldenBoot = mt?.golden_boot as unknown as PlayerJoin;
   const masterTouchLocked = new Date() >= MASTER_TOUCH_LOCK_DATE;
 
   const totalPreds = (predCount as unknown as { count: number } | null)?.count ?? 0;
