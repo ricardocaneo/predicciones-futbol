@@ -6,13 +6,6 @@
 
 ## 🔴 Crítico — sin esto no hay juego
 
-### 1. Deploy en Vercel
-La app corre solo en localhost. Los usuarios no pueden entrar hasta que esté deployada.
-- Conectar el repo a Vercel
-- Configurar variables de entorno en Vercel (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `LIVESCORE_KEY`, `LIVESCORE_SECRET`)
-- Agregar el dominio de producción a Supabase → Authentication → URL Configuration (Site URL + Redirect URLs)
-- Verificar que el Edge Function de sync siga funcionando (usa variables de entorno propias en Supabase)
-
 ### 2. Google OAuth en producción
 El bug del PKCE se arregló pero nunca se probó en un entorno deployado.
 - Después del deploy, hacer login con Google desde el dominio real
@@ -72,6 +65,8 @@ Cuando avance el torneo, verificar que se actualicen automáticamente con los no
 ---
 
 ## ✅ Completado
+
+- **Deploy en Vercel** (2026-06-02): `predicciones-futbol-alpha.vercel.app`. Middleware sin `@supabase/ssr` (incompatible con edge runtime). Framework Preset debe estar explícitamente en Next.js en settings de Vercel.
 
 - **Seed de jugadores** (2026-06-01): 1247 jugadores migrados. 33 equipos con datos completos de livescore-api (posición, número, external_api_id). 15 equipos con datos de Wikipedia (posición, sin número).
 - Sistema de puntos implementado y funcionando
