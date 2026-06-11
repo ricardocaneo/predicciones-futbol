@@ -26,6 +26,7 @@ export default async function HomePage() {
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, total_points")
+      .eq("is_active", true)
       .order("total_points", { ascending: false })
       .limit(3),
     supabase

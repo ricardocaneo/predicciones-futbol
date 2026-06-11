@@ -30,7 +30,7 @@ export default async function PublicProfilePage({
   const [{ data: profile }, { data: predRows }, { data: masterTouchRow }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, avatar_url, bio, favorite_team, total_points")
+      .select("id, display_name, avatar_url, bio, favorite_team, total_points, is_active")
       .eq("id", id)
       .single(),
 
@@ -54,6 +54,7 @@ export default async function PublicProfilePage({
   ]);
 
   if (!profile) notFound();
+  if (profile.is_active === false && user?.id !== id) notFound();
 
   const isOwnProfile = user?.id === id;
   const masterTouchLocked = new Date() >= MASTER_TOUCH_LOCK_DATE;

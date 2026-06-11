@@ -19,6 +19,7 @@ export default async function RankingPage() {
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, total_points")
+      .eq("is_active", true)
       .order("total_points", { ascending: false }),
     supabase
       .from("predictions")
