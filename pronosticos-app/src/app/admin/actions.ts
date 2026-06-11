@@ -108,35 +108,73 @@ export async function actionCountMatchPredictions(matchId: string) {
   }
 }
 
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+export type AdminUser = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  total_points: number;
+  is_active: boolean;
+  prediction_count: number;
+  created_at: string;
+};
+
+export async function actionListUsers(): Promise<{ success: true; users: AdminUser[] } | { success: false; error: string }> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.rpc("admin_list_users");
+    if (error) throw new Error(error.message);
+
+    const users: AdminUser[] = (data ?? []).map((p: Record<string, unknown>) => ({
+      id: p.id as string,
+      display_name: p.display_name as string | null,
+      email: p.email as string | null,
+      avatar_url: p.avatar_url as string | null,
+      total_points: (p.total_points as number) ?? 0,
+      is_active: (p.is_active as boolean) ?? true,
+      prediction_count: Number(p.prediction_count ?? 0),
+      created_at: p.created_at as string,
+    }));
+    return { success: true, users };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+export async function actionSetUserActive(userId: string, active: boolean) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.rpc("admin_set_user_active", { p_user_id: userId, p_active: active });
+    if (error) throw new Error(error.message);
+    return { success: true as const };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
+export async function actionDeleteUser(userId: string) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase.rpc("admin_delete_user", { p_user_id: userId });
+    if (error) throw new Error(error.message);
+    return { success: true as const };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
+// ─── Matches ──────────────────────────────────────────────────────────────────
+
 export async function actionDeleteMatch(matchId: string) {
   try {
     const supabase = createAdminClient();
 
-    // Usuarios afectados para recalcular sus puntos después
-    const { data: affectedPreds } = await supabase
-      .from("predictions")
-      .select("user_id")
-      .eq("match_id", matchId);
-
-    const affectedUserIds = [...new Set((affectedPreds ?? []).map((p) => p.user_id as string))];
-    const deletedCount = affectedPreds?.length ?? 0;
-
-    // Eliminar pronósticos y luego el partido
-    await supabase.from("predictions").delete().eq("match_id", matchId);
-    await supabase.from("matches").delete().eq("id", matchId);
-
-    // Recalcular total_points de usuarios afectados
-    for (const userId of affectedUserIds) {
-      const { data: userPreds } = await supabase
-        .from("predictions")
-        .select("points")
-        .eq("user_id", userId);
-      const total = (userPreds ?? []).reduce(
-        (sum: number, p: { points: number | null }) => sum + (p.points ?? 0),
-        0,
-      );
-      await supabase.from("profiles").update({ total_points: total }).eq("id", userId);
-    }
+    // Eliminar pronósticos, partido y recalcular total_points en una sola transacción
+    const { data: rpcData, error: rpcError } = await supabase.rpc("admin_delete_match", { p_match_id: matchId });
+    if (rpcError) throw new Error(`Error eliminando: ${rpcError.message}`);
+    const deletedCount = (rpcData as number) ?? 0;
 
     return { success: true as const, deletedPredictions: deletedCount };
   } catch (err) {

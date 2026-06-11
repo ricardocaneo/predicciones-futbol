@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { updateThemePreference } from "@/app/actions/theme";
+
+function saveTheme(theme: "light" | "dark") {
+  try { localStorage.setItem("theme", theme); } catch (_) {}
+  document.cookie = `theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
@@ -11,14 +17,15 @@ export default function ThemeToggle() {
 
   function toggle() {
     const nowDark = document.documentElement.classList.contains("dark");
+    const next = nowDark ? "light" : "dark";
     if (nowDark) {
       document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
     } else {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
     }
     setIsDark(!nowDark);
+    saveTheme(next);
+    updateThemePreference(next);
   }
 
   return (
