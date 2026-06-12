@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { updateThemePreference } from "@/app/actions/theme";
 
 function saveTheme(theme: "light" | "dark") {
-  try { localStorage.setItem("theme", theme); } catch (_) {}
   document.cookie = `theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
 

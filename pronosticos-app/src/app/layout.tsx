@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <html lang="es" className={`${geist.variable}${theme === "dark" ? " dark" : ""}`} suppressHydrationWarning>
           <head>
             <script dangerouslySetInnerHTML={{ __html:
-              `try{var t=localStorage.getItem('theme');if(!t){var m=document.cookie.match(/(?:^|;\\s*)theme=([^;]+)/);t=m?m[1]:null;}if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.remove('dark');}catch(e){}`
+              `try{var m=document.cookie.match(/(?:^|;\\s*)theme=([^;]+)/);var t=m?m[1]:null;if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.remove('dark');}catch(e){}`
             }} />
           </head>
           <body suppressHydrationWarning className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans">
@@ -68,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" className={`${geist.variable}${theme === "dark" ? " dark" : ""}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html:
-          `try{var t=localStorage.getItem('theme');if(!t){var m=document.cookie.match(/(?:^|;\\s*)theme=([^;]+)/);t=m?m[1]:null;}if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.remove('dark');}catch(e){}`
+          `try{var m=document.cookie.match(/(?:^|;\\s*)theme=([^;]+)/);var t=m?m[1]:null;if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.remove('dark');}catch(e){}`
         }} />
       </head>
       <body suppressHydrationWarning className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans transition-colors duration-200">
