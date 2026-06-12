@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import UserAvatar from "./UserAvatar";
 import { signOut } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 
 export type NavbarUser = {
   id: string;
@@ -53,11 +54,16 @@ export default function Navbar({ user }: { user: NavbarUser }) {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [profileOpen]);
 
-  function toggleTheme() {
+  async function toggleTheme() {
     const next = !isDark;
+    const themeValue = next ? "dark" : "light";
     setIsDark(next);
     document.documentElement.classList.toggle("dark", next);
-    try { localStorage.setItem("theme", next ? "dark" : "light"); } catch (_) {}
+    document.cookie = `theme=${themeValue}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    if (user?.id) {
+      const supabase = createClient();
+      await supabase.from("profiles").update({ theme: themeValue }).eq("id", user.id);
+    }
   }
 
   return (
