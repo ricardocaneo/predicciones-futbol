@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { updateThemePreference } from "@/app/actions/theme";
+import { createClient } from "@/lib/supabase/client";
 
 function saveTheme(theme: "light" | "dark") {
   document.cookie = `theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
@@ -14,7 +14,7 @@ export default function ThemeToggle() {
     setIsDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  function toggle() {
+  async function toggle() {
     const nowDark = document.documentElement.classList.contains("dark");
     const next = nowDark ? "light" : "dark";
     if (nowDark) {
@@ -24,7 +24,12 @@ export default function ThemeToggle() {
     }
     setIsDark(!nowDark);
     saveTheme(next);
-    updateThemePreference(next);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("profiles").update({ theme: next }).eq("id", user.id);
+    }
   }
 
   return (
