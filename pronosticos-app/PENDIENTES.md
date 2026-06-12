@@ -6,26 +6,11 @@
 
 ## 🔴 Crítico — sin esto no hay juego
 
-### 3. Toque Maestro — verificación end-to-end
+### 1. Toque Maestro — verificación end-to-end
 La pantalla existe pero no se confirmó que el flujo completo funcione.
 - Hacer una predicción de campeón/subcampeón/goleador con un usuario real
 - Verificar que se guarda en `master_touch_predictions`
 - Verificar que el sistema de puntos lo considera cuando corresponda
-
----
-
-## 🟡 Importante — para la experiencia del juego
-
-### 4. exactResults en el Ranking muestra 0
-El campo de marcadores exactos en la tabla de ranking siempre devuelve 0, nunca se terminó de diagnosticar.
-- Investigar si el query de ranking calcula `exact_results` correctamente
-- Comparar con el cálculo en `mis-pronosticos` (que sí muestra el valor correcto)
-
-### 5. Prueba real del flujo completo de sync
-Usar el próximo partido sincronizado como prueba end-to-end:
-- Sync automático activa → partido pasa a "live" → puntos se calculan al terminar → ranking se actualiza
-- Verificar que `newlyFinished` dispara el cálculo de puntos
-- Verificar que `total_points` en `profiles` se actualiza
 
 ---
 
@@ -60,20 +45,18 @@ Cuando avance el torneo, verificar que se actualicen automáticamente con los no
 
 ## ✅ Completado
 
+- **Sync automático funcionando end-to-end** (2026-06-12): Edge Function con `--no-verify-jwt` para que el cron pueda llamarla. Puntos calculados vía RPCs SECURITY DEFINER (`edge_get_pending_match_data`, `edge_save_points_batch`, `edge_recalculate_group_standings`) porque el key `sb_secret_...` no bypasea RLS en queries directas. Trigger `validate_prediction_window` corregido para no bloquear updates de puntos.
+- **Tabla del mundial actualizada automáticamente** (2026-06-12): `group_standings` se recalcula desde cero al terminar cada partido de fase grupal.
+- **Ranking: desempate por marcadores exactos** (2026-06-12): en caso de igualdad de puntos, gana quien tiene más resultados exactos.
 - **Google OAuth en producción** (2026-06-11): funciona en `juegomundial.fluxio.cl`. El problema era solo en localhost.
 - **Dominio personalizado** (2026-06-10): `juegomundial.fluxio.cl` configurado con Cloudflare CNAME + SSL de Vercel.
 - **Home page con datos reales** (2026-06-10): partidos en vivo, próximos y top 3 ranking desde Supabase. CTA de registro para usuarios no logueados.
 - **Tema light/dark persistente** (2026-06-10): localStorage + cookie + profiles.theme. ThemeRestorer evita que router.refresh() pise la clase.
 - **Admin: gestión de usuarios** (2026-06-10): pestaña Usuarios con dar de baja (invisible para otros, historial conservado) y eliminar con advertencia.
 - **Admin: fix borrado de partidos** (2026-06-10): eliminación y recálculo de puntos vía SECURITY DEFINER para evitar problemas de permisos del cliente JS.
-
 - **Deploy en Vercel** (2026-06-02): `predicciones-futbol-alpha.vercel.app`. Middleware sin `@supabase/ssr` (incompatible con edge runtime). Framework Preset debe estar explícitamente en Next.js en settings de Vercel.
-
 - **Seed de jugadores** (2026-06-01): 1247 jugadores migrados. 33 equipos con datos completos de livescore-api (posición, número, external_api_id). 15 equipos con datos de Wikipedia (posición, sin número).
 - Sistema de puntos implementado y funcionando
-- Sync automático cada 2 minutos (pg_cron + Edge Function)
-- Fallback para puntos no calculados (partidos finished con `points_breakdown IS NULL`)
-- Eliminación de partidos desde admin con advertencia y recálculo de puntos
 - Tooltips en estadísticas de Mis Pronósticos
 - Eventos del partido en MatchCard (finalizados y en vivo), con línea divisoria home/away
 - Grace period de 20 min para mostrar partidos recién terminados en "En vivo"
