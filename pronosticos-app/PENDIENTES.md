@@ -6,12 +6,6 @@
 
 ## 🔴 Crítico — sin esto no hay juego
 
-### 2. Google OAuth en producción
-El bug del PKCE se arregló pero nunca se probó en un entorno deployado.
-- Después del deploy, hacer login con Google desde el dominio real
-- Confirmar que el redirect de callback funciona correctamente
-- Hay un problema pre-existente en mobile con Google OAuth — verificar si persiste en prod
-
 ### 3. Toque Maestro — verificación end-to-end
 La pantalla existe pero no se confirmó que el flujo completo funcione.
 - Hacer una predicción de campeón/subcampeón/goleador con un usuario real
@@ -65,6 +59,13 @@ Cuando avance el torneo, verificar que se actualicen automáticamente con los no
 ---
 
 ## ✅ Completado
+
+- **Google OAuth en producción** (2026-06-11): funciona en `juegomundial.fluxio.cl`. El problema era solo en localhost.
+- **Dominio personalizado** (2026-06-10): `juegomundial.fluxio.cl` configurado con Cloudflare CNAME + SSL de Vercel.
+- **Home page con datos reales** (2026-06-10): partidos en vivo, próximos y top 3 ranking desde Supabase. CTA de registro para usuarios no logueados.
+- **Tema light/dark persistente** (2026-06-10): localStorage + cookie + profiles.theme. ThemeRestorer evita que router.refresh() pise la clase.
+- **Admin: gestión de usuarios** (2026-06-10): pestaña Usuarios con dar de baja (invisible para otros, historial conservado) y eliminar con advertencia.
+- **Admin: fix borrado de partidos** (2026-06-10): eliminación y recálculo de puntos vía SECURITY DEFINER para evitar problemas de permisos del cliente JS.
 
 - **Deploy en Vercel** (2026-06-02): `predicciones-futbol-alpha.vercel.app`. Middleware sin `@supabase/ssr` (incompatible con edge runtime). Framework Preset debe estar explícitamente en Next.js en settings de Vercel.
 

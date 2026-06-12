@@ -44,19 +44,22 @@ export default async function RankingPage() {
     }
   }
 
-  const entries: LeaderboardEntry[] = (profiles ?? []).map((profile, index) => ({
-    rank:         index + 1,
-    previousRank: index + 1,
-    user: {
-      id:        profile.id,
-      name:      profile.display_name,
-      avatar:    profile.display_name?.[0] ?? "?",
-      avatarUrl: profile.avatar_url ?? undefined,
-    },
-    points:       profile.total_points,
-    predictions:  predCounts.get(profile.id) ?? 0,
-    exactResults: exactCounts.get(profile.id) ?? 0,
-  }));
+  const entries: LeaderboardEntry[] = (profiles ?? [])
+    .map((profile) => ({
+      rank:         0,
+      previousRank: 0,
+      user: {
+        id:        profile.id,
+        name:      profile.display_name,
+        avatar:    profile.display_name?.[0] ?? "?",
+        avatarUrl: profile.avatar_url ?? undefined,
+      },
+      points:       profile.total_points,
+      predictions:  predCounts.get(profile.id) ?? 0,
+      exactResults: exactCounts.get(profile.id) ?? 0,
+    }))
+    .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
+    .map((e, i) => ({ ...e, rank: i + 1, previousRank: i + 1 }));
 
   const myEntry   = entries.find((e) => e.user.id === user?.id);
   const myProfile = (profiles ?? []).find((p) => p.id === user?.id);
