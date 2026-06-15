@@ -1,19 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import TeamFlag from "@/components/TeamFlag";
 
-type PlayerJoin = {
-  id:          string;
-  name:        string;
-  teams: { name: string; country_code: string } | null;
-} | null;
-
 type ScorerRow = {
-  id:             string;
-  goals:          number;
-  assists:        number;
-  matches_played: number;
-  penalties:      number;
-  players:        PlayerJoin;
+  id:           string;
+  player_name:  string;
+  team_name:    string;
+  country_code: string;
+  goals:        number;
+  penalties:    number;
 };
 
 function rankMedal(rank: number): string {
@@ -23,7 +17,7 @@ function rankMedal(rank: number): string {
   return `${rank}°`;
 }
 
-function ScorerRow({
+function ScorerTableRow({
   rank, scorer, isLeader, isUserPick,
 }: {
   rank:       number;
@@ -31,11 +25,6 @@ function ScorerRow({
   isLeader:   boolean;
   isUserPick: boolean;
 }) {
-  const player     = scorer.players;
-  const teamName   = player?.teams?.name        ?? "—";
-  const countryCode = player?.teams?.country_code ?? "";
-  const playerName = player?.name               ?? "—";
-
   return (
     <tr className={`border-b border-slate-50 dark:border-slate-800/50 last:border-0 transition-colors ${
       isLeader   ? "bg-amber-50 dark:bg-amber-900/10"  :
@@ -46,14 +35,16 @@ function ScorerRow({
       </td>
       <td className="px-2 py-2.5">
         <div className="flex items-center gap-2">
-          {countryCode && <TeamFlag countryCode={countryCode} name={teamName} size={20} />}
+          {scorer.country_code && (
+            <TeamFlag countryCode={scorer.country_code} name={scorer.team_name} size={20} />
+          )}
           <div className="min-w-0">
             <p className={`text-sm font-semibold truncate ${
               isLeader   ? "text-amber-700 dark:text-amber-300"  :
               isUserPick ? "text-blue-700 dark:text-blue-300"    :
                            "text-slate-800 dark:text-slate-100"
-            }`}>{playerName}</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{teamName}</p>
+            }`}>{scorer.player_name}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{scorer.team_name}</p>
           </div>
           {isLeader && (
             <span className="shrink-0 text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded">
@@ -68,15 +59,11 @@ function ScorerRow({
         </div>
       </td>
       <td className="px-2 py-2.5 text-center">
-        <span className={`text-base font-black tabular-nums ${isLeader ? "text-amber-600 dark:text-amber-400" : "text-slate-900 dark:text-white"}`}>
+        <span className={`text-base font-black tabular-nums ${
+          isLeader ? "text-amber-600 dark:text-amber-400" : "text-slate-900 dark:text-white"
+        }`}>
           {scorer.goals}
         </span>
-      </td>
-      <td className="px-2 py-2.5 text-center tabular-nums text-sm text-slate-500 dark:text-slate-400">
-        {scorer.assists > 0 ? scorer.assists : "–"}
-      </td>
-      <td className="px-2 py-2.5 text-center tabular-nums text-sm text-slate-500 dark:text-slate-400">
-        {scorer.matches_played}
       </td>
       <td className="px-2 py-2.5 text-center tabular-nums text-sm text-slate-400 dark:text-slate-500">
         {scorer.penalties > 0 ? scorer.penalties : "–"}
@@ -89,29 +76,42 @@ export default async function ScorersView() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: scorerData }, { data: predRow }] = await Promise.all([
-    supabase
-      .from("top_scorers")
-      .select("id, goals, assists, matches_played, penalties, players(id, name, teams(name, country_code))")
-      .order("goals",    { ascending: false })
-      .order("assists",  { ascending: false })
-      .limit(30),
+  const { data: scorerData } = await supabase
+    .from("goals_from_events")
+    .select("id, player_name, team_name, country_code, goals, penalties")
+    .order("goals",       { ascending: false })
+    .order("player_name", { ascending: true })
+    .limit(30);
 
-    user
-      ? supabase
-          .from("toque_maestro_predictions")
-          .select("golden_boot_player_id")
-          .eq("user_id", user.id)
-          .single()
-      : Promise.resolve({ data: null }),
-  ]);
+  const scorers = (scorerData ?? []) as ScorerRow[];
 
-  const scorers = (scorerData ?? []) as unknown as ScorerRow[];
-  const userPickPlayerId = (predRow as { golden_boot_player_id?: string } | null)?.golden_boot_player_id;
+  // Resolver el pick de Bota de Oro del usuario (nombre completo desde players)
+  let userPickPlayerName: string | null = null;
+  if (user) {
+    const { data: predRow } = await supabase
+      .from("toque_maestro_predictions")
+      .select("golden_boot_player_id")
+      .eq("user_id", user.id)
+      .single();
 
-  // Find user pick in scorers list
-  const userPickScorer = userPickPlayerId
-    ? scorers.find((s) => s.players?.id === userPickPlayerId)
+    if (predRow?.golden_boot_player_id) {
+      const { data: playerData } = await supabase
+        .from("players")
+        .select("name")
+        .eq("id", predRow.golden_boot_player_id)
+        .single();
+      userPickPlayerName = playerData?.name ?? null;
+    }
+  }
+
+  // Buscar el pick del usuario en la lista: exacto primero, luego por apellido
+  // (el feed live abrevia nombres: "F. Balogun" = "Folarin Balogun")
+  const userPickScorer = userPickPlayerName
+    ? scorers.find((s) => {
+        if (s.player_name.toLowerCase() === userPickPlayerName!.toLowerCase()) return true;
+        const lastName = userPickPlayerName!.split(" ").pop()?.toLowerCase() ?? "";
+        return lastName.length > 2 && s.player_name.toLowerCase().includes(lastName);
+      })
     : undefined;
 
   if (scorers.length === 0) {
@@ -129,7 +129,7 @@ export default async function ScorersView() {
   }
 
   const leader = scorers[0];
-  const goalsBehind = userPickScorer ? leader.goals - userPickScorer.goals : 0;
+  const goalsBehind  = userPickScorer ? leader.goals - userPickScorer.goals : 0;
   const userPickRank = userPickScorer ? scorers.indexOf(userPickScorer) + 1 : null;
 
   return (
@@ -141,19 +141,19 @@ export default async function ScorersView() {
             ⭐ Tu candidato a Bota de Oro
           </p>
           <div className="flex items-center gap-3">
-            {userPickScorer.players?.teams?.country_code && (
+            {userPickScorer.country_code && (
               <TeamFlag
-                countryCode={userPickScorer.players.teams.country_code}
-                name={userPickScorer.players.teams.name ?? ""}
+                countryCode={userPickScorer.country_code}
+                name={userPickScorer.team_name}
                 size={36}
               />
             )}
             <div className="flex-1 min-w-0">
               <p className="font-black text-slate-900 dark:text-white text-base truncate">
-                {userPickScorer.players?.name}
+                {userPickPlayerName}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {userPickScorer.players?.teams?.name}
+                {userPickScorer.team_name}
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -169,7 +169,7 @@ export default async function ScorersView() {
           </div>
           {goalsBehind > 0 ? (
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              A {goalsBehind} {goalsBehind === 1 ? "gol" : "goles"} del líder ({leader.players?.name}, {leader.goals} goles)
+              A {goalsBehind} {goalsBehind === 1 ? "gol" : "goles"} del líder ({leader.player_name}, {leader.goals} goles)
             </p>
           ) : (
             <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-1">
@@ -191,14 +191,12 @@ export default async function ScorersView() {
                 <th className="px-3 py-2 text-center font-medium w-10">#</th>
                 <th className="px-2 py-2 text-left font-medium">Jugador</th>
                 <th className="px-2 py-2 text-center font-bold text-slate-600 dark:text-slate-300 w-10">G</th>
-                <th className="px-2 py-2 text-center font-medium w-10">A</th>
-                <th className="px-2 py-2 text-center font-medium w-10">PJ</th>
                 <th className="px-2 py-2 text-center font-medium w-10">P</th>
               </tr>
             </thead>
             <tbody>
               {scorers.map((scorer, i) => (
-                <ScorerRow
+                <ScorerTableRow
                   key={scorer.id}
                   rank={i + 1}
                   scorer={scorer}
@@ -211,7 +209,7 @@ export default async function ScorersView() {
         </div>
         <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            G = Goles · A = Asistencias · PJ = Partidos jugados · P = Penales convertidos
+            G = Goles · P = Penales convertidos
           </p>
         </div>
       </div>

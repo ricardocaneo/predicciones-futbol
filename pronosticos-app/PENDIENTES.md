@@ -32,7 +32,17 @@ Paraguay:4040 Qatar:1427      Saudi Arabia:1432  Senegal:1460
 Turkey:1744   Uruguay:1434    Uzbekistan:1776
 ```
 
-### 7. Partido Egypt vs Russia — ID incorrecto
+### 7. Verificar horarios de partidos de fase eliminatoria
+Cuando se carguen los partidos de Octavos, Cuartos, Semis y Final, comparar los `starts_at` de la DB contra la API de livescore antes de que se jueguen.
+
+**Contexto:** En la fase de grupos se encontraron 5 partidos con `starts_at` incorrecto (el más grave: Australia vs Turkey tenía 15h de diferencia, nunca se sincronizó). El patrón es que los IDs `1850xxx` y `1852xxx` son los más propensos a tener el horario mal cargado.
+
+**Cómo hacerlo (pedirle a Claude):**
+> "Compara los `starts_at` de todos los partidos de fase eliminatoria en la DB contra lo que devuelve la API de livescore. Usa `competition_id=362` en el endpoint `/fixtures/matches.json` y cruza por `external_api_id`."
+
+**Cuándo:** Ni bien se carguen los partidos de Octavos de Final (aprox. 30 de junio 2026).
+
+### 8. Partido Egypt vs Russia — ID incorrecto
 `external_api_id: '1857143'` no existe en ningún feed de livescore-api. El partido ya pasó sin sincronizarse.
 - Buscar el ID correcto en livescore-api, o
 - Eliminarlo desde el panel de admin si no tiene pronósticos de usuarios reales

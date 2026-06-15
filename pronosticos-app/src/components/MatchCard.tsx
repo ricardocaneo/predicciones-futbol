@@ -82,7 +82,11 @@ export default function MatchCard({ match, prediction, allowPrediction }: MatchC
   const isKnockout = phase !== "group";
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden border ${
+      prediction
+        ? "border-slate-200 dark:border-slate-800 border-l-[3px] border-l-green-400 dark:border-l-green-600"
+        : "border-slate-200 dark:border-slate-800"
+    }`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex flex-col">
@@ -152,16 +156,16 @@ export default function MatchCard({ match, prediction, allowPrediction }: MatchC
 
         {/* Current prediction + points */}
         {prediction && (
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-3 -mx-4 px-4 pt-2.5 pb-2.5 border-t border-green-100 dark:border-green-900/40 bg-green-50/60 dark:bg-green-950/20">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 {pointsResult ? (
                   pointsResult.scoringMode === "live" ? (
                     <span className="shrink-0 text-xs font-bold text-amber-500 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
                       EN VIVO
                     </span>
                   ) : (
-                    <span className="shrink-0 text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                    <span className="shrink-0 text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
                       PRE-PARTIDO
                     </span>
                   )
@@ -170,8 +174,8 @@ export default function MatchCard({ match, prediction, allowPrediction }: MatchC
                     EN VIVO
                   </span>
                 ) : null}
-                <span className="shrink-0">Tu pronóstico:</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                <span className="shrink-0 text-xs font-bold text-green-700 dark:text-green-400">Tu pronóstico:</span>
+                <span className="font-black text-slate-800 dark:text-white text-base tabular-nums">
                   {prediction.homeScore} - {prediction.awayScore}
                 </span>
               </div>
