@@ -135,8 +135,9 @@ export default async function RankingPage() {
       displayEntries = entries
         .map((e) => ({
           ...e,
-          previousRank: e.rank,
-          points: e.points + (provisionalMap.get(e.user.id) ?? 0),
+          previousRank:     e.rank,
+          provisionalPoints: provisionalMap.get(e.user.id) ?? 0,
+          points:            e.points + (provisionalMap.get(e.user.id) ?? 0),
         }))
         .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
         .map((e, i) => ({ ...e, rank: i + 1 }));

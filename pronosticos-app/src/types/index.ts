@@ -96,6 +96,7 @@ export interface LeaderboardEntry {
   points: number;
   predictions: number;
   exactResults: number;
+  provisionalPoints?: number;
 }
 
 export interface MasterTouchPrediction {

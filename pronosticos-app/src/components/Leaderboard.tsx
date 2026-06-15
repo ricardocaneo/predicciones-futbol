@@ -99,9 +99,22 @@ export default function Leaderboard({
                 <div className="w-12 text-center">
                   <span className="text-sm text-slate-600 dark:text-slate-300">{entry.exactResults}</span>
                 </div>
-                <div className="w-16 flex flex-col items-end">
-                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{entry.points}</span>
-                  <RankChange current={entry.rank} previous={entry.previousRank} />
+                <div className="w-16 flex flex-col items-end gap-0.5">
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                    {entry.points}
+                  </span>
+                  {liveMatch ? (
+                    <div className="flex items-center gap-1.5">
+                      {(entry.provisionalPoints ?? 0) > 0 && (
+                        <span className="text-xs font-bold text-green-500 tabular-nums">
+                          +{entry.provisionalPoints}
+                        </span>
+                      )}
+                      <RankChange current={entry.rank} previous={entry.previousRank} />
+                    </div>
+                  ) : (
+                    <RankChange current={entry.rank} previous={entry.previousRank} />
+                  )}
                 </div>
               </Link>
             </li>
