@@ -33,10 +33,9 @@ export default async function RankingPage() {
       .select("user_id, predicted_home_score, predicted_away_score, matches(status, home_score, away_score)"),
     supabase
       .from("matches")
-      .select("id, phase, home_team, away_team, home_score, away_score, minute")
+      .select("id, phase, home_team, away_team, home_score, away_score, minute, time")
       .eq("status", "live")
-      .gt("minute", LIVE_WINDOW_MINUTES)
-      .limit(1),
+      .limit(5),
     supabase
       .from("matches")
       .select("phase")
@@ -94,6 +93,7 @@ export default async function RankingPage() {
     home_score: number | null;
     away_score: number | null;
     minute: number | null;
+    time: string | null;
   };
   type LivePredRow = {
     user_id: string;
@@ -102,7 +102,13 @@ export default async function RankingPage() {
     prediction_mode: string;
   };
 
-  const liveMatch = (liveMatchRows as unknown as LiveMatchRow[] | null)?.[0] ?? null;
+  // Partido que debe mostrar ranking provisional:
+  // - minuto > 30 (ventana cerrada), O
+  // - minute = null pero hay un estado especial (HT = entretiempo, ET = prórroga)
+  const liveMatch = ((liveMatchRows as unknown as LiveMatchRow[] | null) ?? []).find((m) =>
+    (m.minute !== null && m.minute > LIVE_WINDOW_MINUTES) ||
+    (m.minute === null && m.time !== null && m.time !== "")
+  ) ?? null;
 
   let displayEntries = entries;
   let liveMatchInfo: {
