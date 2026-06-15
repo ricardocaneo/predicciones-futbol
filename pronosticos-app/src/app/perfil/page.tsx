@@ -7,7 +7,7 @@ import UserAvatar from "@/components/UserAvatar";
 import TeamFlag from "@/components/TeamFlag";
 
 export const metadata: Metadata = {
-  title: "Mi Perfil — El Juego del Mundial",
+  title: "Mi Perfil — La Pollita Mundialera",
 };
 
 export default async function PerfilPage() {

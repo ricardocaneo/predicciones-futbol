@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "El Juego del Mundial ⚽",
+  title: "La Pollita Mundialera 🐣⚽",
   description: "Juego de pronósticos de fútbol",
 };
 

@@ -3,7 +3,7 @@ import { SCORING_MATRIX, ADVANCEMENT_BONUS, LIVE_WINDOW_MINUTES, MASTER_TOUCH_PO
 import type { TournamentPhase } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Bases del Juego — El Juego del Mundial",
+  title: "Bases del Juego — La Pollita Mundialera",
 };
 
 const PHASES_ORDER: TournamentPhase[] = [
@@ -45,7 +45,7 @@ export default function BasesPage() {
       <div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Bases del Juego</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Cómo funciona El Juego del Mundial 2026
+          Cómo funciona La Pollita Mundialera 2026
         </p>
       </div>
 

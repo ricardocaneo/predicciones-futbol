@@ -144,7 +144,7 @@ export default function EditarPerfilPage() {
 
       <div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Editar perfil</h1>
-        <p className="text-sm text-slate-400 mt-1">Personaliza tu identidad en El Juego del Mundial</p>
+        <p className="text-sm text-slate-400 mt-1">Personaliza tu identidad en La Pollita Mundialera</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

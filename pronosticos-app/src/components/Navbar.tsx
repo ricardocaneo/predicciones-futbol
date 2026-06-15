@@ -77,8 +77,8 @@ export default function Navbar({ user }: { user: NavbarUser }) {
             href="/"
             className="flex items-center gap-2.5 font-black text-white text-base tracking-tight"
           >
-            <span className="text-lg">⚽</span>
-            <span>El Juego del Mundial</span>
+            <span className="text-lg">🐣</span>
+            <span>La Pollita Mundialera ⚽</span>
           </Link>
 
           <div className="flex items-center gap-1.5">

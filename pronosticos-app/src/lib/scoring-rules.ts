@@ -8,7 +8,7 @@ export interface ScoringMatrix {
   liveExact: number;
 }
 
-// Matriz oficial según reglamento del Juego del Mundial 2026
+// Matriz oficial según reglamento dLa Pollita Mundialera 2026
 export const SCORING_MATRIX: Record<TournamentPhase, ScoringMatrix> = {
   group:         { exact: 5,  goalDiff: 3,  tendency: 2, consolation: 1, liveExact: 2 },
   round_of_32:   { exact: 8,  goalDiff: 5,  tendency: 3, consolation: 2, liveExact: 3 },

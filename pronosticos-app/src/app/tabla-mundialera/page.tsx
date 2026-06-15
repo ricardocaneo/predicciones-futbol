@@ -5,7 +5,7 @@ import KnockoutView from "@/components/tabla-mundialera/KnockoutView";
 import ScorersView from "@/components/tabla-mundialera/ScorersView";
 
 export const metadata: Metadata = {
-  title: "Tabla Mundialera — El Juego del Mundial",
+  title: "Tabla Mundialera — La Pollita Mundialera",
   description: "Fase grupal, eliminación y goleadores del Mundial 2026",
 };
 

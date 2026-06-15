@@ -50,7 +50,7 @@ export default function RegistroPage() {
           Crea tu perfil
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Únete y compite con tus amigos en El Juego del Mundial
+          Únete y compite con tus amigos en La Pollita Mundialera
         </p>
       </div>
 
