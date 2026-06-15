@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import type { LeaderboardEntry } from "@/lib/types";
+import type { LeaderboardEntry, Match, Prediction, TournamentPhase } from "@/lib/types";
+import { calculateMatchPoints } from "@/lib/scoring";
+import { LIVE_WINDOW_MINUTES } from "@/lib/scoring-rules";
 import Leaderboard from "@/components/Leaderboard";
 import UserAvatar from "@/components/UserAvatar";
+import AutoRefresh from "@/components/AutoRefresh";
 
 export default async function RankingPage() {
   const supabase = await createClient();
@@ -15,7 +18,7 @@ export default async function RankingPage() {
     matches: { status: string; home_score: number | null; away_score: number | null } | null;
   };
 
-  const [{ data: profiles }, { data: allPreds }] = await Promise.all([
+  const [{ data: profiles }, { data: allPreds }, { data: liveMatchRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, total_points")
@@ -24,6 +27,12 @@ export default async function RankingPage() {
     supabase
       .from("predictions")
       .select("user_id, predicted_home_score, predicted_away_score, matches(status, home_score, away_score)"),
+    supabase
+      .from("matches")
+      .select("id, phase, home_team, away_team, home_score, away_score, minute")
+      .eq("status", "live")
+      .gt("minute", LIVE_WINDOW_MINUTES)
+      .limit(1),
   ]);
 
   const predCounts  = new Map<string, number>();
@@ -61,7 +70,76 @@ export default async function RankingPage() {
     .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
     .map((e, i) => ({ ...e, rank: i + 1, previousRank: i + 1 }));
 
-  const myEntry   = entries.find((e) => e.user.id === user?.id);
+  // ── Ranking virtual en vivo ───────────────────────────────────────────────
+  type LiveMatchRow = {
+    id: string;
+    phase: string;
+    home_team: string;
+    away_team: string;
+    home_score: number | null;
+    away_score: number | null;
+    minute: number | null;
+  };
+  type LivePredRow = {
+    user_id: string;
+    predicted_home_score: number;
+    predicted_away_score: number;
+    prediction_mode: string;
+  };
+
+  const liveMatch = (liveMatchRows as unknown as LiveMatchRow[] | null)?.[0] ?? null;
+
+  let displayEntries = entries;
+  let liveMatchInfo: {
+    homeTeam: string; awayTeam: string;
+    homeScore: number; awayScore: number; minute: number;
+  } | null = null;
+
+  if (liveMatch && liveMatch.home_score !== null && liveMatch.away_score !== null) {
+    try {
+      const { data: livePreds } = await supabase
+        .from("predictions")
+        .select("user_id, predicted_home_score, predicted_away_score, prediction_mode")
+        .eq("match_id", liveMatch.id);
+
+      const provisionalMap = new Map<string, number>();
+      const fakeMatch = { phase: liveMatch.phase as TournamentPhase, status: "live" } as Match;
+      const result    = { homeScore: liveMatch.home_score, awayScore: liveMatch.away_score };
+
+      for (const pred of (livePreds as unknown as LivePredRow[] | null) ?? []) {
+        const fakePred: Prediction = {
+          id: "", userId: pred.user_id, matchId: liveMatch.id,
+          homeScore: pred.predicted_home_score,
+          awayScore: pred.predicted_away_score,
+          isLive:    pred.prediction_mode === "live",
+        };
+        const pts = calculateMatchPoints(fakeMatch, fakePred, result);
+        provisionalMap.set(pred.user_id, pts.totalPoints);
+      }
+
+      displayEntries = entries
+        .map((e) => ({
+          ...e,
+          previousRank: e.rank,
+          points: e.points + (provisionalMap.get(e.user.id) ?? 0),
+        }))
+        .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
+        .map((e, i) => ({ ...e, rank: i + 1 }));
+
+      liveMatchInfo = {
+        homeTeam:  liveMatch.home_team,
+        awayTeam:  liveMatch.away_team,
+        homeScore: liveMatch.home_score,
+        awayScore: liveMatch.away_score,
+        minute:    liveMatch.minute ?? 0,
+      };
+    } catch {
+      // Falla silenciosa — se muestra el ranking oficial
+      displayEntries = entries;
+    }
+  }
+
+  const myEntry = displayEntries.find((e) => e.user.id === user?.id);
   const myProfile = (profiles ?? []).find((p) => p.id === user?.id);
 
   return (
@@ -81,7 +159,9 @@ export default async function RankingPage() {
             />
             <div>
               <p className="font-bold text-white leading-tight">{myEntry.user.name}</p>
-              <p className="text-xs text-wc-red font-bold uppercase tracking-widest">Tu resumen</p>
+              <p className="text-xs text-wc-red font-bold uppercase tracking-widest">
+                {liveMatchInfo ? "Tu resumen provisional" : "Tu resumen"}
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -91,7 +171,9 @@ export default async function RankingPage() {
             </div>
             <div>
               <p className="text-2xl font-black">{myEntry.points}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Puntos</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {liveMatchInfo ? "Pts provisorios" : "Puntos"}
+              </p>
             </div>
             <div>
               <p className="text-2xl font-black">{myEntry.predictions}</p>
@@ -101,8 +183,12 @@ export default async function RankingPage() {
         </div>
       )}
 
-      {entries.length > 0 ? (
-        <Leaderboard entries={entries} highlightUserId={user?.id} />
+      {displayEntries.length > 0 ? (
+        <Leaderboard
+          entries={displayEntries}
+          highlightUserId={user?.id}
+          liveMatch={liveMatchInfo ?? undefined}
+        />
       ) : (
         <div className="text-center py-16 text-slate-400">
           <p className="text-4xl mb-3">🏆</p>
@@ -128,6 +214,9 @@ export default async function RankingPage() {
           </li>
         </ul>
       </div>
+
+      {/* Refresca el server component cada 60s mientras hay partido vivo */}
+      {liveMatchInfo && <AutoRefresh intervalMs={60000} />}
     </div>
   );
 }
