@@ -15,7 +15,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-type PredWithMatch = Prediction & { match: Match };
+type PredWithMatch = Prediction & { match: Match; startsAt: string };
 
 export default async function PublicProfilePage({
   params,
@@ -78,10 +78,13 @@ export default async function PublicProfilePage({
       awayScore: row.predicted_away_score,
       isLive: row.prediction_mode === "live",
     };
-    return { ...prediction, match };
+    return { ...prediction, match, startsAt: (matchRow as unknown as Record<string, string>).starts_at };
   }).sort((a, b) => {
-    const order: Record<string, number> = { live: 0, finished: 1, scheduled: 2 };
-    return (order[a.match.status] ?? 2) - (order[b.match.status] ?? 2);
+    const statusOrder: Record<string, number> = { live: 0, finished: 1, scheduled: 2 };
+    const statusDiff = (statusOrder[a.match.status] ?? 2) - (statusOrder[b.match.status] ?? 2);
+    if (statusDiff !== 0) return statusDiff;
+    // Dentro del mismo estado: más reciente primero
+    return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
   });
 
   const live     = predictions.filter((p) => p.match.status === "live");
@@ -178,7 +181,7 @@ export default async function PublicProfilePage({
           </div>
           <div className="space-y-3">
             {live.map((p) => (
-              <MatchCard key={p.id} match={p.match} prediction={p} />
+              <MatchCard key={p.id} match={p.match} prediction={p} isOwnPrediction={isOwnProfile} />
             ))}
           </div>
         </section>
@@ -189,7 +192,7 @@ export default async function PublicProfilePage({
           <SectionHeading>Finalizados</SectionHeading>
           <div className="space-y-3">
             {finished.map((p) => (
-              <MatchCard key={p.id} match={p.match} prediction={p} />
+              <MatchCard key={p.id} match={p.match} prediction={p} isOwnPrediction={isOwnProfile} />
             ))}
           </div>
         </section>

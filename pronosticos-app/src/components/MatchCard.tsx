@@ -13,6 +13,7 @@ interface MatchCardProps {
   match: Match;
   prediction?: Prediction;
   allowPrediction?: boolean;
+  isOwnPrediction?: boolean;
 }
 
 function PointsBadge({ points, isProvisional }: { points: number; isProvisional: boolean }) {
@@ -64,7 +65,7 @@ function TeamCell({ team, size = 48 }: { team: Match["homeTeam"]; size?: number 
   return <div className="flex flex-col items-center gap-2">{inner}</div>;
 }
 
-export default function MatchCard({ match, prediction, allowPrediction }: MatchCardProps) {
+export default function MatchCard({ match, prediction, allowPrediction, isOwnPrediction = true }: MatchCardProps) {
   const { homeTeam, awayTeam, status, homeScore, awayScore, date, time, competition, round, phase, minute } = match;
 
   const canRegular = allowPrediction && canEditRegularPrediction(match);
@@ -174,7 +175,7 @@ export default function MatchCard({ match, prediction, allowPrediction }: MatchC
                     EN VIVO
                   </span>
                 ) : null}
-                <span className="shrink-0 text-xs font-bold text-green-700 dark:text-green-400">Tu pronóstico:</span>
+                <span className="shrink-0 text-xs font-bold text-green-700 dark:text-green-400">{isOwnPrediction ? "Tu pronóstico:" : "Pronóstico:"}</span>
                 <span className="font-black text-slate-800 dark:text-white text-base tabular-nums">
                   {prediction.homeScore} - {prediction.awayScore}
                 </span>
