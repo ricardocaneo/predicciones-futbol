@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import PredictionForm from "./PredictionForm";
 import type { Prediction, PointsResult, MatchStatus } from "@/lib/types";
 import { LIVE_WINDOW_MINUTES } from "@/lib/scoring-rules";
@@ -35,12 +35,22 @@ export default function PredictionSection({
   matchId, status, minute, prediction, pointsResult,
   isOwnPrediction, canRegular, canLive, allowPrediction,
 }: PredictionSectionProps) {
-  const [savedMsg, setSavedMsg] = useState(false);
+  const [savedMsg, setSavedMsg]   = useState(false);
+  const [msgEntered, setMsgEntered] = useState(false);
 
   const handleSaved = useCallback(() => {
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 5000);
   }, []);
+
+  useEffect(() => {
+    if (savedMsg) {
+      const raf = requestAnimationFrame(() => setMsgEntered(true));
+      return () => cancelAnimationFrame(raf);
+    } else {
+      setMsgEntered(false);
+    }
+  }, [savedMsg]);
 
   return (
     <>
@@ -71,23 +81,18 @@ export default function PredictionSection({
                 {prediction.homeScore} - {prediction.awayScore}
               </span>
               {savedMsg && (
-                <>
-                  <style>{`
-                    @keyframes slide-bounce {
-                      0%   { transform: translateX(48px); opacity: 0; }
-                      55%  { transform: translateX(-6px); opacity: 1; }
-                      75%  { transform: translateX(3px); }
-                      90%  { transform: translateX(-2px); }
-                      100% { transform: translateX(0); opacity: 1; }
-                    }
-                  `}</style>
-                  <span
-                    className="text-xs text-green-600 dark:text-green-400 truncate"
-                    style={{ animation: "slide-bounce 0.55s ease-out forwards" }}
-                  >
-                    ← tu pronóstico fue guardado aquí
-                  </span>
-                </>
+                <span
+                  className="text-xs text-green-600 dark:text-green-400 truncate"
+                  style={{
+                    transform:  msgEntered ? "translateX(0)"   : "translateX(48px)",
+                    opacity:    msgEntered ? 1                  : 0,
+                    transition: msgEntered
+                      ? "transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease-out"
+                      : "none",
+                  }}
+                >
+                  ← tu pronóstico fue guardado aquí
+                </span>
               )}
             </div>
             {pointsResult && (
