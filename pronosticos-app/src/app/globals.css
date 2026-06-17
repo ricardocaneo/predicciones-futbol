@@ -11,14 +11,12 @@
   --color-wc-gold: #D4AF37;
 }
 
-@keyframes slide-bounce {
-  0%   { transform: translateX(48px); opacity: 0; }
-  55%  { transform: translateX(-6px); opacity: 1; }
-  75%  { transform: translateX(3px);  }
-  90%  { transform: translateX(-2px); }
-  100% { transform: translateX(0);    opacity: 1; }
-}
-
-.animate-slide-bounce {
-  animation: slide-bounce 0.55s ease-out forwards;
+@layer base {
+  @keyframes slide-bounce {
+    0%   { transform: translateX(48px); opacity: 0; }
+    55%  { transform: translateX(-6px); opacity: 1; }
+    75%  { transform: translateX(3px);  }
+    90%  { transform: translateX(-2px); }
+    100% { transform: translateX(0);    opacity: 1; }
+  }
 }
