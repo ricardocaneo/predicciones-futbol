@@ -71,7 +71,7 @@ export default function PredictionSection({
                 {prediction.homeScore} - {prediction.awayScore}
               </span>
               {savedMsg && (
-                <span className="text-xs text-green-600 dark:text-green-400 truncate">
+                <span className="text-xs text-green-600 dark:text-green-400 truncate animate-slide-bounce">
                   ← tu pronóstico fue guardado aquí
                 </span>
               )}
