@@ -8,9 +8,10 @@ interface PredictionFormProps {
   matchId: string;
   mode: "regular" | "live";
   existing?: Prediction;
+  onSaved?: () => void;
 }
 
-export default function PredictionForm({ matchId, mode, existing }: PredictionFormProps) {
+export default function PredictionForm({ matchId, mode, existing, onSaved }: PredictionFormProps) {
   const [home, setHome] = useState(existing?.homeScore ?? 0);
   const [away, setAway] = useState(existing?.awayScore ?? 0);
   const [flash, setFlash] = useState(false);
@@ -19,6 +20,7 @@ export default function PredictionForm({ matchId, mode, existing }: PredictionFo
 
   useEffect(() => {
     if (state?.success) {
+      onSaved?.();
       setFlash(true);
       const t = setTimeout(() => setFlash(false), 2500);
       return () => clearTimeout(t);
