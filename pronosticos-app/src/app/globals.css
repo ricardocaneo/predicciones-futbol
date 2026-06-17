@@ -9,7 +9,6 @@
   --color-wc-red: #C8102E;
   --color-wc-red-dark: #A00C24;
   --color-wc-gold: #D4AF37;
-  --animate-slide-bounce: slide-bounce 0.55s ease-out forwards;
 }
 
 @keyframes slide-bounce {
@@ -18,4 +17,8 @@
   75%  { transform: translateX(3px);  }
   90%  { transform: translateX(-2px); }
   100% { transform: translateX(0);    opacity: 1; }
+}
+
+.animate-slide-bounce {
+  animation: slide-bounce 0.55s ease-out forwards;
 }
