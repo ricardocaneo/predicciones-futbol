@@ -28,7 +28,7 @@ export default async function ToqueMaestroPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: teamRows }, { data: playerRows }, { data: predRow }] = await Promise.all([
+  const [{ data: teamRows }, { data: playerRows1 }, { data: playerRows2 }, { data: predRow }] = await Promise.all([
     supabase
       .from("teams")
       .select("id, name, short_name, country_code")
@@ -37,7 +37,14 @@ export default async function ToqueMaestroPage() {
     supabase
       .from("players")
       .select("id, name, team_id, teams(country_code)")
-      .order("name", { ascending: true }),
+      .order("name", { ascending: true })
+      .range(0, 999),
+
+    supabase
+      .from("players")
+      .select("id, name, team_id, teams(country_code)")
+      .order("name", { ascending: true })
+      .range(1000, 1999),
 
     user
       ? supabase
@@ -47,6 +54,8 @@ export default async function ToqueMaestroPage() {
           .single()
       : Promise.resolve({ data: null }),
   ]);
+
+  const playerRows = [...(playerRows1 ?? []), ...(playerRows2 ?? [])];
 
   const teams: Team[] = (teamRows ?? []).map((r: TeamRow) => ({
     id:          r.id,
