@@ -30,6 +30,7 @@ export default function PredictionForm({ matchId, mode, existing }: PredictionFo
   }
 
   const isLive = mode === "live";
+  const isEdit = !!existing || !!state?.success;
 
   return (
     <div>
@@ -63,7 +64,7 @@ export default function PredictionForm({ matchId, mode, existing }: PredictionFo
               : "bg-wc-red text-white hover:bg-wc-red-dark"
           }`}
         >
-          {isPending ? "Guardando…" : flash ? "¡Guardado!" : isLive ? "Cambiar en vivo" : "Guardar"}
+          {isPending ? "Guardando…" : flash ? "¡Guardado!" : isLive ? "Cambiar en vivo" : isEdit ? "Modificar" : "Guardar"}
         </button>
       </form>
 
