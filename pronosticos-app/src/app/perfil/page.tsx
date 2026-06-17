@@ -92,10 +92,10 @@ export default async function PerfilPage() {
         </p>
         {totalPreds > 0 ? (
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Tenés <strong>{totalPreds}</strong> pronóstico{totalPreds !== 1 ? "s" : ""} registrado{totalPreds !== 1 ? "s" : ""}.
+            Tienes <strong>{totalPreds}</strong> pronóstico{totalPreds !== 1 ? "s" : ""} registrado{totalPreds !== 1 ? "s" : ""}.
           </p>
         ) : (
-          <p className="text-sm text-slate-400">Todavía no tenés pronósticos.</p>
+          <p className="text-sm text-slate-400">Todavía no tienes pronósticos.</p>
         )}
         <Link href="/mis-pronosticos" className="inline-block mt-2 text-xs text-wc-red font-semibold hover:underline">
           Ver mis pronósticos →

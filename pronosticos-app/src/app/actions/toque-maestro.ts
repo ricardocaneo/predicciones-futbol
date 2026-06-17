@@ -12,7 +12,7 @@ export async function saveToqueMaestro(
 ): Promise<ToqueMaestroState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Tenés que estar logueado para guardar tu Toque Maestro." };
+  if (!user) return { error: "Tienes que estar conectado para guardar tu Toque Maestro." };
 
   if (!canEditMasterTouch()) return { error: "El Toque Maestro ya está bloqueado." };
 

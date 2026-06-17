@@ -19,7 +19,7 @@ export default function AccountInactive() {
         <div>
           <h1 className="text-xl font-black text-slate-900 dark:text-white">Cuenta desactivada</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Tu cuenta fue dada de baja y ya no podés participar en el juego.
+            Tu cuenta fue dada de baja y ya no puedes participar en el juego.
             Tu historial de pronósticos fue conservado.
           </p>
         </div>

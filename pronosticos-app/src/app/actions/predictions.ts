@@ -12,7 +12,7 @@ export async function savePrediction(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return { error: "Tenés que estar logueado para pronosticar." };
+  if (!user) return { error: "Tienes que estar conectado para pronosticar." };
 
   const matchId   = formData.get("match_id") as string;
   const homeScore = parseInt(formData.get("home_score") as string, 10);

@@ -12,7 +12,7 @@ export default async function AdminPage() {
     return (
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-sm text-red-700 dark:text-red-400">
         <p className="font-bold mb-1">Sin sesión</p>
-        <p>No hay usuario autenticado. Iniciá sesión primero.</p>
+        <p>No hay usuario autenticado. Inicia sesión primero.</p>
       </div>
     );
   }

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { rowToMatch, rowToPrediction, type MatchRow, type PredictionRow } from "@/lib/supabase/match-mapper";
 import type { Match, Prediction, LeaderboardEntry } from "@/lib/types";
+import { canEditMasterTouch } from "@/lib/scoring";
+import { MASTER_TOUCH_LOCK_DATE } from "@/lib/scoring-rules";
 import MatchCard from "@/components/MatchCard";
 import Leaderboard from "@/components/Leaderboard";
 
@@ -97,6 +99,10 @@ export default async function HomePage() {
     }
   }
 
+  const masterTouchOpen = canEditMasterTouch();
+  const hoursLeft = (MASTER_TOUCH_LOCK_DATE.getTime() - Date.now()) / 3_600_000;
+  const deadlineText = hoursLeft > 20 ? "mañana a las 12 hs" : "hoy a las 12 hs";
+
   return (
     <div className="space-y-8">
       <div className="bg-wc-navy rounded-2xl px-6 py-7 text-white relative overflow-hidden">
@@ -108,7 +114,7 @@ export default async function HomePage() {
             El Juego<br />del Mundial
           </h1>
           <p className="text-slate-300 mt-2 text-sm">
-            Pronosticá cada partido y competí con tus amigos por el título de campeón del Mundial
+            Pronostica cada partido y compite con tus amigos por el título de campeón del Mundial
           </p>
           {!user && (
             <div className="flex gap-3 mt-5">
@@ -131,6 +137,28 @@ export default async function HomePage() {
           🏆
         </div>
       </div>
+
+      {masterTouchOpen && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl shrink-0">⭐</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900 dark:text-amber-200 leading-tight">
+                ¡Último llamado al Toque Maestro!
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                Tienes hasta {deadlineText} para elegir tu campeón, subcampeón y bota de oro.
+              </p>
+            </div>
+            <Link
+              href="/toque-maestro"
+              className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+            >
+              Ir ahora →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {liveMatches.length > 0 && (
         <section>

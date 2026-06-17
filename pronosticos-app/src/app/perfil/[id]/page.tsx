@@ -165,7 +165,7 @@ export default async function PublicProfilePage({
             )}
             {!masterTouchLocked && isOwnProfile && (
               <p className="text-xs text-slate-500 pt-1">
-                Solo vos podés ver esto hasta el {MASTER_TOUCH_LOCK_DATE.toLocaleDateString("es", { day: "numeric", month: "long", timeZone: "America/Santiago" })}.
+                Solo tú puedes ver esto hasta el {MASTER_TOUCH_LOCK_DATE.toLocaleDateString("es", { day: "numeric", month: "long", timeZone: "America/Santiago" })}.
               </p>
             )}
           </div>
@@ -203,7 +203,7 @@ export default async function PublicProfilePage({
           <p className="text-4xl mb-3">🎯</p>
           <p className="font-medium dark:text-slate-300">
             {isOwnProfile
-              ? "Todavía no tenés pronósticos cerrados"
+              ? "Todavía no tienes pronósticos cerrados"
               : "Todavía no hay pronósticos visibles de este jugador"}
           </p>
           <p className="text-sm mt-1">

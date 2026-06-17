@@ -183,7 +183,7 @@ export default async function MisPronosticosPage() {
       {pending.length > 0 && (
         <section>
           <SectionHeading>Sin pronosticar</SectionHeading>
-          <p className="text-xs text-slate-400 -mt-1 mb-3">Todavía podés pronosticar estos partidos</p>
+          <p className="text-xs text-slate-400 -mt-1 mb-3">Todavía puedes pronosticar estos partidos</p>
           <div className="space-y-3">
             {pending.map((match) => (
               <MatchCard key={match.id} match={match} allowPrediction />
@@ -206,8 +206,8 @@ export default async function MisPronosticosPage() {
       {myPredictions.length === 0 && pending.length === 0 && (
         <div className="text-center py-12 text-slate-400">
           <p className="text-4xl mb-3">🎯</p>
-          <p className="font-medium dark:text-slate-300">No tenés pronósticos todavía</p>
-          <p className="text-sm mt-1">Andá a Partidos para hacer tu primer pronóstico</p>
+          <p className="font-medium dark:text-slate-300">No tienes pronósticos todavía</p>
+          <p className="text-sm mt-1">Ve a Partidos para hacer tu primer pronóstico</p>
         </div>
       )}
     </div>

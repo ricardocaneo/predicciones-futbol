@@ -134,7 +134,7 @@ export default async function ToqueMaestroPage() {
           <div className="text-center py-8 space-y-2">
             <p className="text-2xl">🔐</p>
             <p className="font-semibold text-slate-700 dark:text-slate-200">
-              Iniciá sesión para participar
+              Inicia sesión para participar
             </p>
             <p className="text-sm text-slate-400">
               Tu Toque Maestro se guarda hasta el {lockDateLabel}
