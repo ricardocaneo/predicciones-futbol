@@ -45,8 +45,11 @@ export default function PredictionSection({
 
   useEffect(() => {
     if (savedMsg) {
-      const raf = requestAnimationFrame(() => setMsgEntered(true));
-      return () => cancelAnimationFrame(raf);
+      let raf1: number, raf2: number;
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setMsgEntered(true));
+      });
+      return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
     } else {
       setMsgEntered(false);
     }
