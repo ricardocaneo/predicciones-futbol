@@ -113,7 +113,8 @@ export default async function RankingPage() {
   let displayEntries = entries;
   let liveMatchInfo: {
     homeTeam: string; awayTeam: string;
-    homeScore: number; awayScore: number; minute: number;
+    homeScore: number; awayScore: number;
+    minute: number | null; time: string | null;
   } | null = null;
 
   if (liveMatch && liveMatch.home_score !== null && liveMatch.away_score !== null) {
@@ -153,7 +154,8 @@ export default async function RankingPage() {
         awayTeam:  liveMatch.away_team,
         homeScore: liveMatch.home_score,
         awayScore: liveMatch.away_score,
-        minute:    liveMatch.minute ?? 0,
+        minute:    liveMatch.minute,
+        time:      liveMatch.time ?? null,
       };
     } catch {
       // Falla silenciosa — se muestra el ranking oficial

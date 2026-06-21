@@ -9,7 +9,8 @@ type LiveMatchInfo = {
   awayTeam:  string;
   homeScore: number;
   awayScore: number;
-  minute:    number;
+  minute:    number | null;
+  time:      string | null;
 };
 
 function RankChange({ current, previous }: { current: number; previous: number }) {
@@ -53,7 +54,7 @@ export default function Leaderboard({
             </span>
             <TeamFlag countryCode={teamToCountryCode(liveMatch.awayTeam)} name={liveMatch.awayTeam} size={16} />
             <span className="text-xs text-green-700 dark:text-green-400 font-semibold">
-              · min {liveMatch.minute}&apos;
+              · {liveMatch.time === "HT" ? "Entretiempo" : liveMatch.time === "ET" ? "Prórroga" : liveMatch.time === "PEN" ? "Penales" : `min ${liveMatch.minute ?? 0}'`}
             </span>
           </div>
           <span className="text-xs text-green-600 dark:text-green-500 font-medium shrink-0">provisional</span>
