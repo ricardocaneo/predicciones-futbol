@@ -135,8 +135,8 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
             prediction={prediction}
             pointsResult={pointsResult}
             isOwnPrediction={isOwnPrediction}
-            canRegular={canRegular}
-            canLive={canLive}
+            canRegular={!!canRegular}
+            canLive={!!canLive}
             allowPrediction={!!allowPrediction}
           />
         )}
