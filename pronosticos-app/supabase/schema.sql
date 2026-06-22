@@ -537,3 +537,33 @@ grant select, insert, update on public.predictions              to authenticated
 
 -- master_touch_predictions: ídem predictions
 grant select, insert, update on public.master_touch_predictions to authenticated;
+
+-- chat_messages: solo usuarios autenticados pueden leer e insertar
+grant select, insert on public.chat_messages to authenticated;
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- CHAT MESSAGES
+-- Mensajes globales del chat de ranking.
+-- ──────────────────────────────────────────────────────────────────────────────
+
+create table public.chat_messages (
+  id         uuid        primary key default gen_random_uuid(),
+  user_id    uuid        not null references public.profiles(id) on delete cascade,
+  message    text        not null check (char_length(trim(message)) > 0 and char_length(message) <= 500),
+  created_at timestamptz not null default now()
+);
+
+create index idx_chat_messages_created_at on public.chat_messages (created_at);
+
+alter table public.chat_messages enable row level security;
+
+create policy "chat_messages_select_authenticated"
+  on public.chat_messages for select
+  using (auth.role() = 'authenticated');
+
+create policy "chat_messages_insert_own"
+  on public.chat_messages for insert
+  with check (auth.uid() = user_id);
+
+alter publication supabase_realtime add table public.chat_messages;

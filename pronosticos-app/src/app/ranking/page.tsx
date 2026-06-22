@@ -5,6 +5,8 @@ import { LIVE_WINDOW_MINUTES, SCORING_MATRIX, ADVANCEMENT_BONUS, PHASE_LABELS } 
 import Leaderboard from "@/components/Leaderboard";
 import UserAvatar from "@/components/UserAvatar";
 import AutoRefresh from "@/components/AutoRefresh";
+import RankingLayout from "./RankingLayout";
+import type { ChatMessage } from "@/components/ChatBox";
 
 const PHASE_ORDER: TournamentPhase[] = [
   "group", "round_of_32", "round_of_16", "quarter_final", "semi_final", "third_place", "final",
@@ -22,10 +24,10 @@ export default async function RankingPage() {
     matches: { status: string; home_score: number | null; away_score: number | null } | null;
   };
 
-  const [{ data: profiles }, { data: allPreds }, { data: liveMatchRows }, { data: phaseRows }] = await Promise.all([
+  const [{ data: profiles }, { data: allPreds }, { data: liveMatchRows }, { data: phaseRows }, { data: chatRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, avatar_url, total_points")
+      .select("id, display_name, avatar_url, total_points, last_read_at")
       .eq("is_active", true)
       .order("total_points", { ascending: false }),
     supabase
@@ -40,6 +42,11 @@ export default async function RankingPage() {
       .from("matches")
       .select("phase")
       .in("status", ["live", "scheduled"]),
+    supabase
+      .from("chat_messages")
+      .select("id, user_id, message, created_at, profiles(display_name, avatar_url)")
+      .order("created_at", { ascending: true })
+      .limit(100),
   ]);
 
   // Fase más avanzada con partidos activos → determina qué matriz de puntos mostrar
@@ -166,7 +173,39 @@ export default async function RankingPage() {
   const myEntry = displayEntries.find((e) => e.user.id === user?.id);
   const myProfile = (profiles ?? []).find((p) => p.id === user?.id);
 
+  // Chat
+  const profileMap = Object.fromEntries(
+    (profiles ?? []).map((p) => [p.id, { display_name: p.display_name, avatar_url: p.avatar_url ?? null }])
+  );
+
+  const lastReadAt = (profiles ?? []).find((p) => p.id === user?.id)?.last_read_at ?? null;
+  const { count: unreadCount } = lastReadAt
+    ? await supabase
+        .from("chat_messages")
+        .select("*", { count: "exact", head: true })
+        .gt("created_at", lastReadAt)
+    : { count: 0 };
+
+  type ChatRow = {
+    id: string; user_id: string; message: string; created_at: string;
+    profiles: { display_name: string; avatar_url: string | null } | null;
+  };
+  const initialMessages: ChatMessage[] = ((chatRows ?? []) as unknown as ChatRow[]).map((r) => ({
+    id: r.id,
+    user_id: r.user_id,
+    message: r.message,
+    created_at: r.created_at,
+    display_name: r.profiles?.display_name ?? "Usuario",
+    avatar_url: r.profiles?.avatar_url ?? null,
+  }));
+
   return (
+    <RankingLayout
+      initialMessages={initialMessages}
+      profileMap={profileMap}
+      currentUserId={user?.id ?? null}
+      initialUnread={unreadCount ?? 0}
+    >
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Ranking</h1>
@@ -260,5 +299,6 @@ export default async function RankingPage() {
       {/* Refresca el server component cada 60s mientras hay partido vivo */}
       {liveMatchInfo && <AutoRefresh intervalMs={60000} />}
     </div>
+    </RankingLayout>
   );
 }
