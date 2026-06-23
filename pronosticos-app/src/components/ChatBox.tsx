@@ -13,10 +13,27 @@ export type ChatMessage = {
   avatar_url: string | null;
 };
 
-const EMOJIS = [
-  "⚽","🏆","🎉","🔥","👏","😂","😭","🤩",
-  "😤","💪","🙌","😅","👀","🤔","🥅","🎯",
-  "🤦","🏅","❤️","👍","👎","🫡","😮","🤯",
+const EMOJI_CATEGORIES = [
+  {
+    icon: "⚽",
+    label: "Fútbol",
+    emojis: ["⚽","🏆","🥅","🎯","🏅","🥇","🏟️","🧤","👟","🦵","⭐","🌟","🔴","🟡","📋","🃏"],
+  },
+  {
+    icon: "😄",
+    label: "Reacciones",
+    emojis: ["😂","🤣","😭","🤩","😤","😱","😅","🥹","😮","🤯","😍","🤔","😒","🙄","😵","🤦"],
+  },
+  {
+    icon: "🎉",
+    label: "Celebración",
+    emojis: ["🎉","🎊","🥳","🔥","💥","✨","🚀","💃","🕺","🎶","🪩","🎈","💫","🏄","🤸","🙆"],
+  },
+  {
+    icon: "👏",
+    label: "Gestos",
+    emojis: ["👏","💪","🙌","👍","👎","🫡","✌️","🤞","👊","🫶","❤️","💔","🙏","🤝","👀","🤷"],
+  },
 ];
 
 export default function ChatBox({
@@ -36,19 +53,26 @@ export default function ChatBox({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [activeCategory, setActiveCategory] = useState(0);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const mobileChatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevCollapsed = useRef(mobileCollapsed);
 
-  // Scroll al fondo cuando llegan mensajes nuevos
+  // Scroll interno al fondo cuando llegan mensajes nuevos (no mueve la página)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  // Scroll al fondo también al expandir en mobile
+  // Al expandir en mobile: scroll interno al fondo + llevar el header a la vista
   useEffect(() => {
     if (prevCollapsed.current && !mobileCollapsed) {
-      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      const el = messagesRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+      setTimeout(() => {
+        mobileChatRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
     }
     prevCollapsed.current = mobileCollapsed;
   }, [mobileCollapsed]);
@@ -70,7 +94,7 @@ export default function ChatBox({
   }
 
   const messageList = (
-    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
+    <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
       {messages.length === 0 && (
         <p className="text-xs text-slate-400 text-center pt-8">Sé el primero en escribir algo</p>
       )}
@@ -97,24 +121,44 @@ export default function ChatBox({
           </div>
         );
       })}
-      <div ref={bottomRef} />
     </div>
   );
 
   const inputArea = currentUserId ? (
     <div className="shrink-0 border-t border-slate-100 dark:border-slate-800">
       {showEmojis && (
-        <div className="grid grid-cols-8 gap-0.5 px-3 pt-2 pb-1">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => insertEmoji(e)}
-              className="text-lg h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              {e}
-            </button>
-          ))}
+        <div className="border-b border-slate-200 dark:border-slate-700">
+          {/* Tabs de categoría */}
+          <div className="flex px-2 pt-1 bg-slate-100 dark:bg-slate-800 rounded-t-lg">
+            {EMOJI_CATEGORIES.map((cat, i) => (
+              <button
+                key={cat.label}
+                type="button"
+                onClick={() => setActiveCategory(i)}
+                title={cat.label}
+                className={`flex-1 py-1.5 text-lg -mb-px border-b-2 transition-all rounded-t-md ${
+                  activeCategory === i
+                    ? "bg-white dark:bg-slate-900 border-wc-navy dark:border-white"
+                    : "border-transparent text-slate-400 hover:text-slate-500 dark:hover:text-slate-300"
+                }`}
+              >
+                {cat.icon}
+              </button>
+            ))}
+          </div>
+          {/* Grid de emojis */}
+          <div className="grid grid-cols-8 gap-0.5 px-3 pt-1 pb-2">
+            {EMOJI_CATEGORIES[activeCategory].emojis.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => insertEmoji(e)}
+                className="text-xl h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="px-3 pb-3 pt-2 flex gap-2">
@@ -164,7 +208,7 @@ export default function ChatBox({
 
   // ── Mobile: colapsable con badge de no leídos ──
   const mobilePanel = (
-    <div className="md:hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div ref={mobileChatRef} className="md:hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       <button
         onClick={onMobileToggle}
         className="w-full flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800"
