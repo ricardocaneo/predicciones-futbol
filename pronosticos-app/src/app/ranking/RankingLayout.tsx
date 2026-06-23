@@ -8,12 +8,14 @@ type ProfileEntry = { display_name: string; avatar_url: string | null };
 
 export default function RankingLayout({
   children,
+  headerSlot,
   initialMessages,
   profileMap,
   currentUserId,
   initialUnread,
 }: {
   children: React.ReactNode;
+  headerSlot: React.ReactNode;
   initialMessages: ChatMessage[];
   profileMap: Record<string, ProfileEntry>;
   currentUserId: string | null;
@@ -94,9 +96,9 @@ export default function RankingLayout({
     <>
       {/* Ranking — siempre full width */}
       <div className="space-y-6">
-        {children}
+        {headerSlot}
 
-        {/* Mobile: chat colapsable debajo del ranking */}
+        {/* Mobile: chat justo después del resumen */}
         <div className="md:hidden">
           <ChatBox
             messages={messages}
@@ -106,6 +108,8 @@ export default function RankingLayout({
             currentUserId={currentUserId}
           />
         </div>
+
+        {children}
       </div>
 
       {/* Desktop: panel flotante */}

@@ -205,47 +205,49 @@ export default async function RankingPage() {
       profileMap={profileMap}
       currentUserId={user?.id ?? null}
       initialUnread={unreadCount ?? 0}
+      headerSlot={
+        <>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Ranking</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Posiciones actuales del torneo</p>
+          </div>
+
+          {myEntry && (
+            <div className="bg-wc-navy rounded-2xl px-5 py-5 text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <UserAvatar
+                  displayName={myEntry.user.name}
+                  avatarUrl={myProfile?.avatar_url ?? undefined}
+                  size={44}
+                />
+                <div>
+                  <p className="font-bold text-white leading-tight">{myEntry.user.name}</p>
+                  <p className="text-xs text-wc-red font-bold uppercase tracking-widest">
+                    {liveMatchInfo ? "Tu resumen provisional" : "Tu resumen"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-2xl font-black">#{myEntry.rank}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Posición</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-black">{myEntry.points}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {liveMatchInfo ? "Pts provisorios" : "Puntos"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-2xl font-black">{myEntry.predictions}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Pronósticos</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      }
     >
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Ranking</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Posiciones actuales del torneo</p>
-      </div>
-
-      {myEntry && (
-        <div className="bg-wc-navy rounded-2xl px-5 py-5 text-white">
-          <div className="flex items-center gap-3 mb-4">
-            <UserAvatar
-              displayName={myEntry.user.name}
-              avatarUrl={myProfile?.avatar_url ?? undefined}
-              size={44}
-            />
-            <div>
-              <p className="font-bold text-white leading-tight">{myEntry.user.name}</p>
-              <p className="text-xs text-wc-red font-bold uppercase tracking-widest">
-                {liveMatchInfo ? "Tu resumen provisional" : "Tu resumen"}
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="text-2xl font-black">#{myEntry.rank}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Posición</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black">{myEntry.points}</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {liveMatchInfo ? "Pts provisorios" : "Puntos"}
-              </p>
-            </div>
-            <div>
-              <p className="text-2xl font-black">{myEntry.predictions}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Pronósticos</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {displayEntries.length > 0 ? (
         <Leaderboard
           entries={displayEntries}
@@ -298,7 +300,6 @@ export default async function RankingPage() {
 
       {/* Refresca el server component cada 60s mientras hay partido vivo */}
       {liveMatchInfo && <AutoRefresh intervalMs={60000} />}
-    </div>
     </RankingLayout>
   );
 }
