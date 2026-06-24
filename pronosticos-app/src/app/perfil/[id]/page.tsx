@@ -6,6 +6,7 @@ import { MASTER_TOUCH_LOCK_DATE } from "@/lib/scoring-rules";
 import UserAvatar from "@/components/UserAvatar";
 import TeamFlag from "@/components/TeamFlag";
 import MatchCard from "@/components/MatchCard";
+import ProfileStickyHeader from "@/components/ProfileStickyHeader";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -130,6 +131,14 @@ export default async function PublicProfilePage({
           </div>
         </div>
       </div>
+
+      <ProfileStickyHeader
+        displayName={profile.display_name}
+        avatarUrl={profile.avatar_url ?? undefined}
+        totalPoints={profile.total_points}
+        predictionsCount={predictions.length}
+        isOwnProfile={isOwnProfile}
+      />
 
       {/* Toque Maestro */}
       {showMasterTouch && (
