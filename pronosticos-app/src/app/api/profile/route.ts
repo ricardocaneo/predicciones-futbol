@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
   const favoriteTeam      = (formData.get("favorite_team")       as string)          || null;
   const existingAvatarUrl = (formData.get("existing_avatar_url") as string)?.trim()  || null;
   const deleteAvatar      =  formData.get("delete_avatar") === "1";
+  const presetAvatar      = (formData.get("preset_avatar")       as string)?.trim()  || null;
   const avatarFile        =  formData.get("avatar") as File | null;
 
   if (!displayName) return NextResponse.json({ error: "El nombre visible es obligatorio." }, { status: 400 });
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
 
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
     updates.avatar_url = `${publicUrl}?t=${Date.now()}`;
+  } else if (presetAvatar) {
+    updates.avatar_url = presetAvatar;
   } else if (deleteAvatar) {
     updates.avatar_url = null;
   } else if (existingAvatarUrl) {

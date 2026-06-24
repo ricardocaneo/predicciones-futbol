@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import UserAvatar from "@/components/UserAvatar";
+import { PRESET_AVATARS } from "@/lib/preset-avatars";
 
 type ProfileRow = {
   id: string;
@@ -33,6 +34,7 @@ export default function EditarPerfilPage() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -44,6 +46,7 @@ export default function EditarPerfilPage() {
   const isDirty =
     deleteAvatar ||
     preview !== null ||
+    (selectedPreset !== null && selectedPreset !== profile?.avatar_url) ||
     displayName !== (profile?.display_name ?? "") ||
     bio !== (profile?.bio ?? "") ||
     favoriteTeam !== (profile?.favorite_team ?? "");
@@ -53,6 +56,9 @@ export default function EditarPerfilPage() {
     setDisplayName(data.display_name);
     setBio(data.bio ?? "");
     setFavoriteTeam(data.favorite_team ?? "");
+    if (data.avatar_url && PRESET_AVATARS.includes(data.avatar_url)) {
+      setSelectedPreset(data.avatar_url);
+    }
   }
 
   useEffect(() => {
@@ -88,6 +94,7 @@ export default function EditarPerfilPage() {
 
       if (data?.success) {
         setPreview(null);
+        setSelectedPreset(null);
         setDeleteAvatar(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
 
@@ -120,6 +127,7 @@ export default function EditarPerfilPage() {
       return;
     }
     setFileError(null);
+    setSelectedPreset(null);
     setPreview(URL.createObjectURL(file));
   }
 
@@ -150,24 +158,102 @@ export default function EditarPerfilPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <input type="hidden" name="existing_avatar_url" value={deleteAvatar ? "" : (profile.avatar_url ?? "")} />
         <input type="hidden" name="delete_avatar" value={deleteAvatar ? "1" : "0"} />
+        <input type="hidden" name="preset_avatar" value={selectedPreset ?? ""} />
 
-        <div className="flex flex-col items-center gap-3 py-2">
-          <div className="relative">
+        <div className="space-y-5 py-2">
+          {/* Vista previa del avatar */}
+          <div className="flex flex-col items-center gap-2">
             <UserAvatar
               displayName={profile.display_name}
-              avatarUrl={deleteAvatar ? undefined : (preview ?? (profile.avatar_url ?? undefined))}
+              avatarUrl={deleteAvatar ? undefined : (selectedPreset ?? preview ?? (profile.avatar_url ?? undefined))}
               size={96}
             />
-            <label
-              htmlFor="avatar-input"
-              className="absolute -bottom-1 -right-1 w-8 h-8 bg-wc-red hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-md transition-colors cursor-pointer"
-              title="Cambiar foto"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
+              {deleteAvatar
+                ? "Sin foto — se guardará con iniciales"
+                : selectedPreset
+                ? "Avatar seleccionado — presiona Guardar para aplicar"
+                : preview
+                ? "Imagen lista para cargar — Presione guardar para realizar los cambios"
+                : "Elige un avatar o sube tu propia foto"}
+            </p>
+            {(selectedPreset || profile.avatar_url || preview) && !deleteAvatar && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteAvatar(true);
+                  setPreview(null);
+                  setSelectedPreset(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+              >
+                Eliminar foto
+              </button>
+            )}
+            {deleteAvatar && (
+              <button
+                type="button"
+                onClick={() => setDeleteAvatar(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+            )}
+            {fileError && <p className="text-xs text-red-500 text-center">{fileError}</p>}
+          </div>
+
+          {/* Grilla de avatares prediseñados */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">
+              Avatares prediseñados
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {PRESET_AVATARS.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPreset(url);
+                    setPreview(null);
+                    setDeleteAvatar(false);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                    selectedPreset === url
+                      ? "border-wc-red ring-2 ring-wc-red/30 scale-105"
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="Avatar prediseñado" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <span className="text-xs text-slate-400">o sube tu propia foto</span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          </div>
+
+          {/* Subida de foto propia */}
+          <label
+            htmlFor="avatar-input"
+            className="flex items-center gap-2.5 cursor-pointer group"
+          >
+            <span className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 group-hover:bg-wc-red group-hover:text-white transition-colors text-slate-500">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-            </label>
+            </span>
+            <span className="text-sm text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+              Seleccionar imagen desde tu dispositivo
+              <span className="block text-xs text-slate-400 mt-0.5">JPG, PNG o WebP · máx. 5 MB</span>
+            </span>
             <input
               ref={fileInputRef}
               id="avatar-input"
@@ -177,33 +263,7 @@ export default function EditarPerfilPage() {
               className="sr-only"
               onChange={handleFileSelect}
             />
-          </div>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            {deleteAvatar ? "Sin foto — se guardará con iniciales" : preview ? "Imagen lista para cargar — Presione guardar para realizar los cambios" : "JPG, PNG o WebP · máx. 5 MB"}
-          </p>
-          {(profile.avatar_url || preview) && !deleteAvatar && (
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteAvatar(true);
-                setPreview(null);
-                if (fileInputRef.current) fileInputRef.current.value = "";
-              }}
-              className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-            >
-              Eliminar foto
-            </button>
-          )}
-          {deleteAvatar && (
-            <button
-              type="button"
-              onClick={() => setDeleteAvatar(false)}
-              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-            >
-              Cancelar
-            </button>
-          )}
-          {fileError && <p className="text-xs text-red-500 text-center">{fileError}</p>}
+          </label>
         </div>
 
         {result?.success && (
