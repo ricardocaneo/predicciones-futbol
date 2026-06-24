@@ -179,7 +179,7 @@ export default function EditarPerfilPage() {
             />
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            {deleteAvatar ? "Sin foto — se guardará con iniciales" : preview ? "Imagen lista — se subirá al guardar" : "JPG, PNG o WebP · máx. 5 MB"}
+            {deleteAvatar ? "Sin foto — se guardará con iniciales" : preview ? "Imagen lista para cargar — Presione guardar para realizar los cambios" : "JPG, PNG o WebP · máx. 5 MB"}
           </p>
           {(profile.avatar_url || preview) && !deleteAvatar && (
             <button

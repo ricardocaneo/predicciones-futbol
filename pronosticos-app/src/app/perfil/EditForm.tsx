@@ -103,7 +103,7 @@ export default function EditForm({ profile, action }: EditFormProps) {
             />
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            {preview ? "Imagen lista — se subirá al guardar" : "JPG, PNG o WebP · máx. 5 MB"}
+            {preview ? "Imagen lista para cargar — Presione guardar para realizar los cambios" : "JPG, PNG o WebP · máx. 5 MB"}
           </p>
           {fileError && <p className="text-xs text-red-500 text-center">{fileError}</p>}
         </div>
