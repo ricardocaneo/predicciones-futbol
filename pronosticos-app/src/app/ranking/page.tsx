@@ -109,66 +109,97 @@ export default async function RankingPage() {
     prediction_mode: string;
   };
 
-  // Partido que debe mostrar ranking provisional:
+  // Partidos que deben mostrar ranking provisional:
   // - minuto > 30 (ventana cerrada), O
-  // - minute = null pero hay un estado especial (HT = entretiempo, ET = prórroga)
-  const liveMatch = ((liveMatchRows as unknown as LiveMatchRow[] | null) ?? []).find((m) =>
+  // - minute = null pero hay estado especial (HT, ET, PEN)
+  const qualifiedLiveMatches = ((liveMatchRows as unknown as LiveMatchRow[] | null) ?? []).filter((m) =>
     (m.minute !== null && m.minute > LIVE_WINDOW_MINUTES) ||
     (m.minute === null && m.time !== null && m.time !== "")
-  ) ?? null;
+  );
+  const validLiveMatches = qualifiedLiveMatches.filter(
+    (m) => m.home_score !== null && m.away_score !== null
+  );
 
   let displayEntries = entries;
-  let liveMatchInfo: {
+  let liveMatchInfoList: {
     homeTeam: string; awayTeam: string;
     homeScore: number; awayScore: number;
     minute: number | null; time: string | null;
-  } | null = null;
+  }[] = [];
 
-  if (liveMatch && liveMatch.home_score !== null && liveMatch.away_score !== null) {
+  if (validLiveMatches.length > 0) {
     try {
-      const { data: livePreds } = await supabase
-        .from("predictions")
-        .select("user_id, predicted_home_score, predicted_away_score, prediction_mode")
-        .eq("match_id", liveMatch.id);
+      // Fetch predicciones de todos los partidos en vivo en paralelo
+      const allPredsResults = await Promise.all(
+        validLiveMatches.map((m) =>
+          supabase
+            .from("predictions")
+            .select("user_id, predicted_home_score, predicted_away_score, prediction_mode")
+            .eq("match_id", m.id)
+        )
+      );
 
-      const provisionalMap = new Map<string, number>();
-      const fakeMatch = { phase: liveMatch.phase as TournamentPhase, status: "live" } as Match;
-      const result    = { homeScore: liveMatch.home_score, awayScore: liveMatch.away_score };
+      // Por usuario: array de puntos y pronósticos, uno por partido en vivo
+      const provisionalPerMatchMap = new Map<string, number[]>();
+      const provisionalPredMap     = new Map<string, { homeScore: number | null; awayScore: number | null }[]>();
 
-      for (const pred of (livePreds as unknown as LivePredRow[] | null) ?? []) {
-        const fakePred: Prediction = {
-          id: "", userId: pred.user_id, matchId: liveMatch.id,
-          homeScore: pred.predicted_home_score,
-          awayScore: pred.predicted_away_score,
-          isLive:    pred.prediction_mode === "live",
-        };
-        const pts = calculateMatchPoints(fakeMatch, fakePred, result);
-        provisionalMap.set(pred.user_id, pts.totalPoints);
-      }
+      validLiveMatches.forEach((m, idx) => {
+        const preds = (allPredsResults[idx].data as unknown as LivePredRow[] | null) ?? [];
+        const fakeMatch = { phase: m.phase as TournamentPhase, status: "live" } as Match;
+        const result    = { homeScore: m.home_score!, awayScore: m.away_score! };
+
+        for (const pred of preds) {
+          const fakePred: Prediction = {
+            id: "", userId: pred.user_id, matchId: m.id,
+            homeScore: pred.predicted_home_score,
+            awayScore: pred.predicted_away_score,
+            isLive:    pred.prediction_mode === "live",
+          };
+          const pts = calculateMatchPoints(fakeMatch, fakePred, result);
+
+          const currentPts  = provisionalPerMatchMap.get(pred.user_id) ?? new Array(validLiveMatches.length).fill(0);
+          currentPts[idx]   = pts.totalPoints;
+          provisionalPerMatchMap.set(pred.user_id, currentPts);
+
+          const currentPred = provisionalPredMap.get(pred.user_id) ??
+            Array.from({ length: validLiveMatches.length }, () => ({ homeScore: null as number | null, awayScore: null as number | null }));
+          currentPred[idx]  = { homeScore: pred.predicted_home_score, awayScore: pred.predicted_away_score };
+          provisionalPredMap.set(pred.user_id, currentPred);
+        }
+      });
 
       displayEntries = entries
-        .map((e) => ({
-          ...e,
-          previousRank:     e.rank,
-          provisionalPoints: provisionalMap.get(e.user.id) ?? 0,
-          points:            e.points + (provisionalMap.get(e.user.id) ?? 0),
-        }))
+        .map((e) => {
+          const perMatch = provisionalPerMatchMap.get(e.user.id) ?? new Array(validLiveMatches.length).fill(0);
+          const perPred  = provisionalPredMap.get(e.user.id) ??
+            Array.from({ length: validLiveMatches.length }, () => ({ homeScore: null as number | null, awayScore: null as number | null }));
+          const totalProvisional = perMatch.reduce((sum, p) => sum + p, 0);
+          return {
+            ...e,
+            previousRank:           e.rank,
+            provisionalPoints:      perMatch,
+            provisionalPredictions: perPred,
+            points:                 e.points + totalProvisional,
+          };
+        })
         .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
         .map((e, i) => ({ ...e, rank: i + 1 }));
 
-      liveMatchInfo = {
-        homeTeam:  liveMatch.home_team,
-        awayTeam:  liveMatch.away_team,
-        homeScore: liveMatch.home_score,
-        awayScore: liveMatch.away_score,
-        minute:    liveMatch.minute,
-        time:      liveMatch.time ?? null,
-      };
+      liveMatchInfoList = validLiveMatches.map((m) => ({
+        homeTeam:  m.home_team,
+        awayTeam:  m.away_team,
+        homeScore: m.home_score!,
+        awayScore: m.away_score!,
+        minute:    m.minute,
+        time:      m.time ?? null,
+      }));
     } catch {
       // Falla silenciosa — se muestra el ranking oficial
       displayEntries = entries;
     }
   }
+
+  const isLive = liveMatchInfoList.length > 0;
 
   const myEntry = displayEntries.find((e) => e.user.id === user?.id);
   const myProfile = (profiles ?? []).find((p) => p.id === user?.id);
@@ -210,6 +241,7 @@ export default async function RankingPage() {
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Ranking</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Posiciones actuales del torneo</p>
+            <p className="text-slate-400 dark:text-slate-500 mt-0.5 text-xs">Ranking provisional en vivo a partir del minuto {LIVE_WINDOW_MINUTES} de cada partido, cuando cierra la ventana de pronósticos</p>
           </div>
 
           {myEntry && (
@@ -223,7 +255,7 @@ export default async function RankingPage() {
                 <div>
                   <p className="font-bold text-white leading-tight">{myEntry.user.name}</p>
                   <p className="text-xs text-wc-red font-bold uppercase tracking-widest">
-                    {liveMatchInfo ? "Tu resumen provisional" : "Tu resumen"}
+                    {isLive ? "Tu resumen provisional" : "Tu resumen"}
                   </p>
                 </div>
               </div>
@@ -235,7 +267,7 @@ export default async function RankingPage() {
                 <div>
                   <p className="text-2xl font-black">{myEntry.points}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {liveMatchInfo ? "Pts provisorios" : "Puntos"}
+                    {isLive ? "Pts provisorios" : "Puntos"}
                   </p>
                 </div>
                 <div>
@@ -252,7 +284,7 @@ export default async function RankingPage() {
         <Leaderboard
           entries={displayEntries}
           highlightUserId={user?.id}
-          liveMatch={liveMatchInfo ?? undefined}
+          liveMatches={liveMatchInfoList.length > 0 ? liveMatchInfoList : undefined}
         />
       ) : (
         <div className="text-center py-16 text-slate-400">
@@ -299,7 +331,7 @@ export default async function RankingPage() {
       </div>
 
       {/* Refresca el server component cada 60s mientras hay partido vivo */}
-      {liveMatchInfo && <AutoRefresh intervalMs={60000} />}
+      {isLive && <AutoRefresh intervalMs={60000} />}
     </RankingLayout>
   );
 }

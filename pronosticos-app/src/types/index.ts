@@ -96,7 +96,8 @@ export interface LeaderboardEntry {
   points: number;
   predictions: number;
   exactResults: number;
-  provisionalPoints?: number;
+  provisionalPoints?: number[];
+  provisionalPredictions?: { homeScore: number | null; awayScore: number | null }[];
 }
 
 export interface MasterTouchPrediction {

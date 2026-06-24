@@ -3,6 +3,7 @@ import type { LeaderboardEntry } from "@/lib/types";
 import UserAvatar from "./UserAvatar";
 import TeamFlag from "./TeamFlag";
 import { teamToCountryCode } from "@/lib/country-codes";
+import ProvisionalBadge from "./ProvisionalBadge";
 
 type LiveMatchInfo = {
   homeTeam:  string;
@@ -34,18 +35,20 @@ function RankBadge({ rank }: { rank: number }) {
 export default function Leaderboard({
   entries,
   highlightUserId,
-  liveMatch,
+  liveMatches,
 }: {
   entries:          LeaderboardEntry[];
   highlightUserId?: string;
-  liveMatch?:       LiveMatchInfo;
+  liveMatches?:     LiveMatchInfo[];
 }) {
+  const isLive = liveMatches && liveMatches.length > 0;
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
 
-      {/* Banner partido en vivo */}
-      {liveMatch && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-green-50 dark:bg-green-950/40 border-b border-green-200 dark:border-green-800/60">
+      {/* Banners partidos en vivo */}
+      {isLive && liveMatches.map((liveMatch, idx) => (
+        <div key={idx} className="flex items-center gap-3 px-4 py-2.5 bg-green-50 dark:bg-green-950/40 border-b border-green-200 dark:border-green-800/60">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <TeamFlag countryCode={teamToCountryCode(liveMatch.homeTeam)} name={liveMatch.homeTeam} size={16} />
@@ -59,7 +62,7 @@ export default function Leaderboard({
           </div>
           <span className="text-xs text-green-600 dark:text-green-500 font-medium shrink-0">provisional</span>
         </div>
-      )}
+      ))}
 
       {/* Encabezado columnas */}
       <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 items-center text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
@@ -104,13 +107,23 @@ export default function Leaderboard({
                   <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
                     {entry.points}
                   </span>
-                  {liveMatch ? (
+                  {isLive ? (
                     <div className="flex items-center gap-1.5">
-                      {(entry.provisionalPoints ?? 0) > 0 && (
-                        <span className="text-xs font-bold text-green-500 tabular-nums">
-                          +{entry.provisionalPoints}
-                        </span>
-                      )}
+                      {entry.provisionalPoints?.map((pts, idx) => {
+                        if (pts <= 0) return null;
+                        const match = liveMatches![idx];
+                        const pred  = entry.provisionalPredictions?.[idx];
+                        return (
+                          <ProvisionalBadge
+                            key={idx}
+                            points={pts}
+                            homeTeam={match.homeTeam}
+                            awayTeam={match.awayTeam}
+                            predHomeScore={pred?.homeScore ?? null}
+                            predAwayScore={pred?.awayScore ?? null}
+                          />
+                        );
+                      })}
                       <RankChange current={entry.rank} previous={entry.previousRank} />
                     </div>
                   ) : (
@@ -123,7 +136,7 @@ export default function Leaderboard({
         })}
       </ul>
 
-      {liveMatch && (
+      {isLive && (
         <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
           <p className="text-xs text-slate-400 dark:text-slate-500">
             Ranking provisional en base al marcador actual · se confirma al pitar el final
