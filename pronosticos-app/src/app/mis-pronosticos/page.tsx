@@ -34,7 +34,7 @@ function StatCard({
       {extra}
       <p className="text-xs text-slate-400 mt-0.5">{label}</p>
       {/* Tooltip */}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-slate-100 text-left opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 shadow-xl">
+      <div className="hidden sm:block pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl bg-slate-800 dark:bg-slate-700 px-3 py-2 text-xs text-slate-100 text-left opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 shadow-xl">
         {tooltip}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700" />
       </div>

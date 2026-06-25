@@ -121,7 +121,7 @@ export function canEditRegularPrediction(match: Match): boolean {
 
 /** La ventana en vivo está abierta hasta el minuto 30 inclusive */
 export function canEditLivePrediction(match: Match): boolean {
-  return match.status === "live" && (match.minute ?? 0) <= LIVE_WINDOW_MINUTES;
+  return match.status === "live" && match.minute !== undefined && match.minute <= LIVE_WINDOW_MINUTES;
 }
 
 /** El Toque Maestro se puede editar hasta el inicio del primer partido de Fecha 2 de grupos */
