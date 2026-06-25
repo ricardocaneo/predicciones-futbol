@@ -105,11 +105,6 @@ export async function getRecentResults(fromDate?: string, toDate?: string): Prom
   return fetchFixturePages(from, to);
 }
 
-/** Fixtures para un rango de fechas arbitrario (YYYY-MM-DD). Itera todas las páginas. */
-export async function getFixturesByDateRange(from: string, to: string): Promise<LsMatch[]> {
-  return fetchFixturePages(from, to);
-}
-
 /** Pagina el endpoint de fixtures entre dos fechas y devuelve todos los partidos. */
 async function fetchFixturePages(from: string, to: string): Promise<LsMatch[]> {
   const all: LsMatch[] = [];
