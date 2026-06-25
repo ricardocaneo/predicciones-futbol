@@ -41,24 +41,26 @@ export default function PredictionForm({ matchId, mode, existing, onSaved }: Pre
           ⚠️ Si guardas este pronóstico renuncias a la matriz tradicional. Solo ganarás puntos con marcador exacto final.
         </p>
       )}
-      <form action={formAction} className="flex items-center gap-3">
+      <form action={formAction} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <input type="hidden" name="match_id"   value={matchId} />
         <input type="hidden" name="mode"       value={mode} />
         <input type="hidden" name="home_score" value={home} />
         <input type="hidden" name="away_score" value={away} />
 
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
-          {isLive ? "Cambio en vivo:" : "Tu pronóstico:"}
-        </span>
-        <div className="flex items-center gap-2">
-          <ScoreInput value={home} onChange={(v) => setHome(clamp(v))} />
-          <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
-          <ScoreInput value={away} onChange={(v) => setAway(clamp(v))} />
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
+            {isLive ? "Cambio en vivo:" : "Tu pronóstico:"}
+          </span>
+          <div className="flex items-center gap-2">
+            <ScoreInput value={home} onChange={(v) => setHome(clamp(v))} />
+            <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
+            <ScoreInput value={away} onChange={(v) => setAway(clamp(v))} />
+          </div>
         </div>
         <button
           type="submit"
           disabled={isPending}
-          className={`ml-auto shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
+          className={`w-full sm:w-auto sm:ml-auto shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
             flash
               ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
               : isLive
