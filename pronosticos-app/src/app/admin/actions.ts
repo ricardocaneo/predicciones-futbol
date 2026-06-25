@@ -6,12 +6,13 @@ import {
   syncLiveScoreForMatch,
   syncAllActive,
   processFinishedMatch,
+  refreshUpcomingFixtures,
   listImportedMatches,
   listAvailableFromApi,
 } from "@/lib/match-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type { ImportResult, SyncResult, ProcessResult, LiveSyncResult } from "@/lib/match-sync";
+export type { ImportResult, SyncResult, ProcessResult, LiveSyncResult, RefreshFixturesResult } from "@/lib/match-sync";
 
 // ─── Fetch from livescore-api ─────────────────────────────────────────────────
 
@@ -68,6 +69,17 @@ export async function actionProcessMatch(matchId: string) {
     return result;
   } catch (err) {
     return { success: false as const, error: String(err) };
+  }
+}
+
+// ─── Refresh upcoming fixtures ───────────────────────────────────────────────
+
+export async function actionRefreshUpcomingFixtures() {
+  try {
+    const result = await refreshUpcomingFixtures();
+    return { success: true as const, ...result };
+  } catch (err) {
+    return { success: false as const, error: String(err), updated: 0, errors: [] as string[] };
   }
 }
 

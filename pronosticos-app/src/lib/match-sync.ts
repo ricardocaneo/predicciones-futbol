@@ -10,6 +10,7 @@ import {
   normalizeLiveScoreApiMatch,
   getLiveMatches,
   getFixturesByDate,
+  getFixturesByDateRange,
   getRecentResults,
   mapStatus,
   parseScore,
@@ -304,6 +305,8 @@ export async function processFinishedMatch(matchId: string): Promise<ProcessResu
     await supabase.from("profiles").update({ total_points: total }).eq("id", userId);
   }
 
+  await refreshUpcomingFixtures();
+
   return {
     success:              true,
     predictionsProcessed: predictions.length,
@@ -458,6 +461,76 @@ export async function syncLiveScoreForMatch(matchId: string): Promise<LiveSyncRe
     minute:      normalized.time,
     eventsCount: normalized.events.length,
   };
+}
+
+// ─── refreshUpcomingFixtures ──────────────────────────────────────────────────
+
+export interface RefreshFixturesResult {
+  updated: number;
+  errors: string[];
+}
+
+/**
+ * Actualiza home_team, away_team y starts_at de todos los partidos scheduled
+ * con external_api_id haciendo un bulk fetch por rango de fechas.
+ * Se llama automáticamente al terminar cada partido; también se puede disparar
+ * desde el admin manualmente.
+ */
+export async function refreshUpcomingFixtures(): Promise<RefreshFixturesResult> {
+  const supabase = createAdminClient();
+
+  const { data: scheduled } = await supabase
+    .from("matches")
+    .select("id, external_api_id, home_team, away_team, starts_at")
+    .eq("status", "scheduled")
+    .not("external_api_id", "is", null);
+
+  if (!scheduled?.length) return { updated: 0, errors: [] };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const maxDate = scheduled
+    .map((m) => (m.starts_at as string).slice(0, 10))
+    .reduce((a, b) => (a > b ? a : b));
+
+  const fixtures = await getFixturesByDateRange(today, maxDate);
+  const fixtureMap = new Map(fixtures.map((f) => [String(f.id), f]));
+
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const match of scheduled) {
+    const api = fixtureMap.get(match.external_api_id as string);
+    if (!api) continue;
+
+    let startsAt: string | undefined;
+    if (api.date && isMatchTime(api.time)) {
+      startsAt = new Date(`${api.date}T${api.time.slice(0, 5)}:00Z`).toISOString();
+    } else if (api.date) {
+      startsAt = new Date(`${api.date}T12:00:00Z`).toISOString();
+    }
+
+    const nameChanged =
+      api.home_name !== match.home_team || api.away_name !== match.away_team;
+    const timeChanged = startsAt && startsAt !== match.starts_at;
+
+    if (!nameChanged && !timeChanged) continue;
+
+    const update: Record<string, unknown> = {
+      home_team: api.home_name,
+      away_team: api.away_name,
+    };
+    if (startsAt) update.starts_at = startsAt;
+
+    const { error } = await supabase
+      .from("matches")
+      .update(update)
+      .eq("id", match.id);
+
+    if (error) errors.push(`${match.id}: ${error.message}`);
+    else updated++;
+  }
+
+  return { updated, errors };
 }
 
 // ─── listImportedMatches ──────────────────────────────────────────────────────
