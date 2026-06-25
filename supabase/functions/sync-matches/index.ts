@@ -207,12 +207,56 @@ Deno.serve(async (req) => {
       await supabase.rpc("edge_recalculate_group_standings", { p_group_name: groupName });
     }
 
+    // 7. Refresh nombres de equipos en partidos pendientes (solo si algo terminó)
+    let fixturesUpdated = 0;
+    if (newlyFinished.length > 0) {
+      const { data: scheduledMatches } = await supabase
+        .from("matches")
+        .select("id, external_api_id, home_team, away_team, starts_at")
+        .eq("status", "scheduled")
+        .not("external_api_id", "is", null);
+
+      if (scheduledMatches?.length) {
+        const todayStr = now.toISOString().slice(0, 10);
+        const maxDate = (scheduledMatches as Record<string, unknown>[])
+          .map((m) => (m.starts_at as string).slice(0, 10))
+          .reduce((a, b) => (a > b ? a : b));
+
+        const allFixtures: Record<string, unknown>[] = [];
+        for (let page = 1; page <= 10; page++) {
+          const pageData = await lsGet("/fixtures/matches.json", { from: todayStr, to: maxDate, page: String(page) });
+          if (!pageData) break;
+          const d = pageData as Record<string, unknown>;
+          const pageMatches = extractMatches(pageData);
+          allFixtures.push(...pageMatches);
+          const hasNext = typeof d.next_page === "string" && d.next_page.length > 0;
+          if (!hasNext || pageMatches.length === 0) break;
+        }
+
+        const fixtureMap = new Map(allFixtures.map((f) => [String(f.id), f]));
+
+        for (const match of scheduledMatches as Record<string, unknown>[]) {
+          const api = fixtureMap.get(match.external_api_id as string);
+          if (!api) continue;
+          const homeName = api.home_name as string;
+          const awayName = api.away_name as string;
+          if (homeName === match.home_team && awayName === match.away_team) continue;
+          await supabase
+            .from("matches")
+            .update({ home_team: homeName, away_team: awayName })
+            .eq("id", match.id);
+          fixturesUpdated++;
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         checked:          toUpdate.length,
         finished:         pending.length,
         predsCalculated:  savedPreds,
         groupsUpdated:    affectedGroupNames.size,
+        fixturesUpdated,
         debug_api_ids:    [...apiById.keys()],
         debug_matches:    toUpdate.map(m => ({ id: m.id, ext: m.external_api_id, status: m.status })),
       }),
