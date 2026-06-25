@@ -208,7 +208,7 @@ export default function EditarPerfilPage() {
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2.5">
               Avatares prediseñados
             </p>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="flex flex-row gap-2.5 overflow-x-auto pb-1">
               {PRESET_AVATARS.map((url) => (
                 <button
                   key={url}
@@ -219,7 +219,7 @@ export default function EditarPerfilPage() {
                     setDeleteAvatar(false);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                  className={`w-16 h-16 shrink-0 rounded-2xl overflow-hidden border-2 transition-all ${
                     selectedPreset === url
                       ? "border-wc-red ring-2 ring-wc-red/30 scale-105"
                       : "border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500"
