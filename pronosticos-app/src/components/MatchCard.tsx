@@ -6,6 +6,7 @@ import StatusBadge from "./StatusBadge";
 import PredictionSection from "./PredictionSection";
 import TeamFlag from "./TeamFlag";
 import LiveMatchPanel from "./LiveMatchPanel";
+import LiveScoreBox from "./LiveScoreBox";
 import FinishedMatchEvents from "./FinishedMatchEvents";
 import Link from "next/link";
 
@@ -86,15 +87,18 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
                 <p className="text-base font-semibold text-slate-700 dark:text-slate-200">{time}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 capitalize">{formattedDate}</p>
               </div>
+            ) : status === "live" ? (
+              <LiveScoreBox
+                matchId={match.id}
+                initialHome={homeScore}
+                initialAway={awayScore}
+              />
             ) : (
               <div className="flex items-center gap-2 text-2xl font-black tabular-nums text-slate-800 dark:text-white">
                 <span>{homeScore}</span>
                 <span className="text-slate-300 dark:text-slate-600 text-lg font-normal">-</span>
                 <span>{awayScore}</span>
               </div>
-            )}
-            {status === "live" && minute !== undefined && (
-              <span className="text-xs text-green-500 font-semibold">Min {minute}&apos;</span>
             )}
           </div>
 
