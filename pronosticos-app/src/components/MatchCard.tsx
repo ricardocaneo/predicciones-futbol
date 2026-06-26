@@ -143,6 +143,11 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
             canRegular={!!canRegular}
             canLive={!!canLive}
             allowPrediction={!!allowPrediction}
+            phase={phase}
+            homeTeamId={homeTeam.id}
+            awayTeamId={awayTeam.id}
+            homeTeamName={homeTeam.name}
+            awayTeamName={awayTeam.name}
           />
         )}
       </div>

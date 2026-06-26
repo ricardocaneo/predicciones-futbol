@@ -186,12 +186,13 @@ Deno.serve(async (req) => {
     // 4. Calcular puntos via RPC (bypasa RLS en predictions/profiles/group_standings)
     type PendingPred = PredictionRow;
     type PendingMatch = {
-      match_id:     string;
-      phase:        string;
-      home_score:   number;
-      away_score:   number;
-      group_name:   string | null;
-      predictions:  PendingPred[] | null;
+      match_id:       string;
+      phase:          string;
+      home_score:     number;
+      away_score:     number;
+      group_name:     string | null;
+      winner_team_id: string | null;
+      predictions:    PendingPred[] | null;
     };
 
     const { data: pendingData } = await supabase.rpc("edge_get_pending_match_data");
@@ -202,7 +203,7 @@ Deno.serve(async (req) => {
 
     for (const matchData of pending) {
       for (const pred of (matchData.predictions ?? []) as PredictionRow[]) {
-        const result = calculatePoints(matchData.phase, matchData.home_score, matchData.away_score, pred);
+        const result = calculatePoints(matchData.phase, matchData.home_score, matchData.away_score, pred, matchData.winner_team_id);
         updates.push({ pred_id: pred.id, points: result.points, breakdown: result.breakdown });
       }
       if (matchData.phase === "group" && matchData.group_name) {
@@ -228,7 +229,7 @@ Deno.serve(async (req) => {
     if (newlyFinished.length > 0 || forceFixtureRefresh) {
       const { data: scheduledMatches } = await supabase
         .from("matches")
-        .select("id, external_api_id, home_team, away_team, starts_at")
+        .select("id, external_api_id, home_team, away_team, starts_at, home_team_id, away_team_id")
         .eq("status", "scheduled")
         .not("external_api_id", "is", null);
 
@@ -256,10 +257,25 @@ Deno.serve(async (req) => {
           if (!api) continue;
           const homeName = api.home_name as string;
           const awayName = api.away_name as string;
-          if (homeName === match.home_team && awayName === match.away_team) continue;
+          const namesUnchanged = homeName === match.home_team && awayName === match.away_team;
+          const idsAlreadySet  = !!(match.home_team_id && match.away_team_id);
+          if (namesUnchanged && idsAlreadySet) continue;
+
+          const teamUpdate: Record<string, unknown> = { home_team: homeName, away_team: awayName };
+          if (!match.home_team_id || !match.away_team_id) {
+            const { data: teams } = await supabase
+              .from("teams")
+              .select("id, name")
+              .in("name", [homeName, awayName]);
+            const homeTeamRow = (teams ?? []).find((t: Record<string, unknown>) => t.name === homeName);
+            const awayTeamRow = (teams ?? []).find((t: Record<string, unknown>) => t.name === awayName);
+            if (homeTeamRow) teamUpdate.home_team_id = homeTeamRow.id;
+            if (awayTeamRow) teamUpdate.away_team_id = awayTeamRow.id;
+          }
+
           await supabase
             .from("matches")
-            .update({ home_team: homeName, away_team: awayName })
+            .update(teamUpdate)
             .eq("id", match.id);
           fixturesUpdated++;
         }

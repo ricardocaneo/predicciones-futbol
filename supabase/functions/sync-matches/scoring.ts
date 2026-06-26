@@ -25,6 +25,7 @@ export interface PredictionRow {
   predicted_home_score: number;
   predicted_away_score: number;
   prediction_mode: string;
+  advancing_team_id?: string | null;
 }
 
 export interface PointsResult {
@@ -42,6 +43,7 @@ export function calculatePoints(
   homeScore: number,
   awayScore: number,
   pred: PredictionRow,
+  winnerTeamId?: string | null,
 ): PointsResult {
   const matrix = SCORING_MATRIX[phase as TournamentPhase] ?? SCORING_MATRIX.group;
   const isKnockout = phase !== "group";
@@ -71,7 +73,13 @@ export function calculatePoints(
   else if (isTendencyCorrect)               { base = matrix.tendency;    category = "tendency";   }
   else if (isConsolation && matrix.consolation > 0) { base = matrix.consolation; category = "consolation"; }
 
-  const advancementBonus = isKnockout && isTendencyCorrect ? (ADVANCEMENT_BONUS[phase as TournamentPhase] ?? 0) : 0;
+  // Bono de avance: si hay pick explícito úsalo, si no cae a tendencia del marcador (grupos o data antigua)
+  const advancementApplies = isKnockout && (
+    pred.advancing_team_id != null && winnerTeamId != null
+      ? pred.advancing_team_id === winnerTeamId
+      : isTendencyCorrect
+  );
+  const advancementBonus = advancementApplies ? (ADVANCEMENT_BONUS[phase as TournamentPhase] ?? 0) : 0;
   const total = base + advancementBonus;
 
   return { points: total, breakdown: { category, base, advancement_bonus: advancementBonus, total } };

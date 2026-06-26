@@ -23,6 +23,7 @@ export type PredictionRow = {
   predicted_home_score: number;
   predicted_away_score: number;
   prediction_mode: string;
+  advancing_team_id?: string | null;
 };
 
 const TZ = "America/Santiago";
@@ -68,5 +69,6 @@ export function rowToPrediction(row: PredictionRow, userId: string): Prediction 
     homeScore: row.predicted_home_score,
     awayScore: row.predicted_away_score,
     isLive: row.prediction_mode === "live",
+    advancingTeamId: row.advancing_team_id ?? null,
   };
 }

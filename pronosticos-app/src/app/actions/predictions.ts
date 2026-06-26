@@ -14,10 +14,11 @@ export async function savePrediction(
 
   if (!user) return { error: "Tienes que estar conectado para pronosticar." };
 
-  const matchId   = formData.get("match_id") as string;
-  const homeScore = parseInt(formData.get("home_score") as string, 10);
-  const awayScore = parseInt(formData.get("away_score") as string, 10);
-  const mode      = formData.get("mode") as string;
+  const matchId          = formData.get("match_id") as string;
+  const homeScore        = parseInt(formData.get("home_score") as string, 10);
+  const awayScore        = parseInt(formData.get("away_score") as string, 10);
+  const mode             = formData.get("mode") as string;
+  const advancingTeamId  = (formData.get("advancing_team_id") as string | null) || null;
 
   if (!matchId || isNaN(homeScore) || isNaN(awayScore)) {
     return { error: "Datos inválidos." };
@@ -30,6 +31,7 @@ export async function savePrediction(
       predicted_home_score:  homeScore,
       predicted_away_score:  awayScore,
       prediction_mode:       mode === "live" ? "live" : "pre_match",
+      advancing_team_id:     advancingTeamId,
     },
     { onConflict: "user_id,match_id" }
   );

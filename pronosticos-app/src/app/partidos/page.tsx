@@ -43,7 +43,7 @@ export default async function PartidosPage() {
     const matchIds = matchRows.map((m) => m.id);
     const { data: predRows } = await supabase
       .from("predictions")
-      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode")
+      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode, advancing_team_id")
       .eq("user_id", user.id)
       .in("match_id", matchIds);
 

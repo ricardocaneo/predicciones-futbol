@@ -20,20 +20,26 @@ function PointsBadge({ points, isProvisional }: { points: number; isProvisional:
 }
 
 interface PredictionSectionProps {
-  matchId:        string;
-  status:         MatchStatus;
-  minute?:        number;
-  prediction?:    Prediction;
-  pointsResult:   PointsResult | null;
+  matchId:         string;
+  status:          MatchStatus;
+  minute?:         number;
+  prediction?:     Prediction;
+  pointsResult:    PointsResult | null;
   isOwnPrediction: boolean;
-  canRegular:     boolean;
-  canLive:        boolean;
+  canRegular:      boolean;
+  canLive:         boolean;
   allowPrediction: boolean;
+  phase?:          string;
+  homeTeamId?:     string;
+  awayTeamId?:     string;
+  homeTeamName?:   string;
+  awayTeamName?:   string;
 }
 
 export default function PredictionSection({
   matchId, status, minute, prediction, pointsResult,
   isOwnPrediction, canRegular, canLive, allowPrediction,
+  phase, homeTeamId, awayTeamId, homeTeamName, awayTeamName,
 }: PredictionSectionProps) {
   const [savedMsg, setSavedMsg]   = useState(false);
   const [msgEntered, setMsgEntered] = useState(false);
@@ -129,7 +135,11 @@ export default function PredictionSection({
               Pronóstico abierto · cierra al inicio del partido
             </span>
           </div>
-          <PredictionForm matchId={matchId} mode="regular" existing={prediction} onSaved={handleSaved} />
+          <PredictionForm
+            matchId={matchId} mode="regular" existing={prediction} onSaved={handleSaved}
+            phase={phase} homeTeamId={homeTeamId} awayTeamId={awayTeamId}
+            homeTeamName={homeTeamName} awayTeamName={awayTeamName}
+          />
         </div>
       )}
 

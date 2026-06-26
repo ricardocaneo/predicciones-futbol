@@ -65,6 +65,7 @@ export interface Prediction {
   awayScore: number;
   isLive?: boolean;
   submittedAt?: string;
+  advancingTeamId?: string | null;
 }
 
 export interface PointsBreakdown {
