@@ -41,7 +41,7 @@ export default async function RankingPage() {
     supabase
       .from("matches")
       .select("phase")
-      .in("status", ["live", "scheduled"]),
+      .in("status", ["live", "finished"]),
     supabase
       .from("chat_messages")
       .select("id, user_id, message, created_at, profiles(display_name, avatar_url)")
