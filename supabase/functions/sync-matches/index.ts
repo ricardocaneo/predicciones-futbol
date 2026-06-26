@@ -51,6 +51,9 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  const url = new URL(req.url);
+  const forceFixtureRefresh = url.searchParams.get("force_refresh") === "1";
+
   try {
     const now         = new Date();
     const windowStart = new Date(now.getTime() - 4 * 60 * 60 * 1000);
@@ -207,9 +210,10 @@ Deno.serve(async (req) => {
       await supabase.rpc("edge_recalculate_group_standings", { p_group_name: groupName });
     }
 
-    // 7. Refresh nombres de equipos en partidos pendientes (solo si algo terminó)
+    // 7. Refresh nombres de equipos en partidos pendientes (solo si algo terminó o se fuerza)
     let fixturesUpdated = 0;
-    if (newlyFinished.length > 0) {
+
+    if (newlyFinished.length > 0 || forceFixtureRefresh) {
       const { data: scheduledMatches } = await supabase
         .from("matches")
         .select("id, external_api_id, home_team, away_team, starts_at")
@@ -224,7 +228,7 @@ Deno.serve(async (req) => {
 
         const allFixtures: Record<string, unknown>[] = [];
         for (let page = 1; page <= 10; page++) {
-          const pageData = await lsGet("/fixtures/matches.json", { from: todayStr, to: maxDate, page: String(page) });
+          const pageData = await lsGet("/fixtures/matches.json", { from: todayStr, to: maxDate, competition_id: COMPETITION_ID, page: String(page) });
           if (!pageData) break;
           const d = pageData as Record<string, unknown>;
           const pageMatches = extractMatches(pageData);
@@ -252,13 +256,11 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        checked:          toUpdate.length,
-        finished:         pending.length,
-        predsCalculated:  savedPreds,
-        groupsUpdated:    affectedGroupNames.size,
+        checked:         toUpdate.length,
+        finished:        pending.length,
+        predsCalculated: savedPreds,
+        groupsUpdated:   affectedGroupNames.size,
         fixturesUpdated,
-        debug_api_ids:    [...apiById.keys()],
-        debug_matches:    toUpdate.map(m => ({ id: m.id, ext: m.external_api_id, status: m.status })),
       }),
       { headers: { "Content-Type": "application/json" } }
     );
