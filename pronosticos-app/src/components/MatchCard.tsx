@@ -92,6 +92,7 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
                 matchId={match.id}
                 initialHome={homeScore}
                 initialAway={awayScore}
+                initialMinute={minute}
               />
             ) : (
               <div className="flex items-center gap-2 text-2xl font-black tabular-nums text-slate-800 dark:text-white">
