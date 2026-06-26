@@ -26,7 +26,8 @@ function extractMatches(data: unknown): Record<string, unknown>[] {
 
 function mapStatus(s: string): "scheduled" | "live" | "finished" {
   const lower = (s ?? "").toLowerCase().trim();
-  if (["ft", "aet", "pen", "finished", "awarded", "full time"].includes(lower)) return "finished";
+  // "pen" se elimina de finished: la API lo manda durante la tanda (en vivo). El estado final llega como "FINISHED".
+  if (["ft", "aet", "finished", "awarded", "full time"].includes(lower)) return "finished";
   if (["sched", "ns", "tbd", "postp", "canc", "susp", "scheduled", ""].includes(lower)) return "scheduled";
   return "live";
 }
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
     // 1. Partidos activos o próximos en DB
     const { data: upcoming } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
       .eq("status", "scheduled")
       .not("external_api_id", "is", null)
       .gte("starts_at", windowStart.toISOString())
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
 
     const { data: liveNow } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
       .eq("status", "live")
       .not("external_api_id", "is", null);
 
@@ -162,7 +163,18 @@ Deno.serve(async (req) => {
 
       if (newStatus === "live") update.events = events;
       if (hasChanged) update.last_changed = syncReceivedAt;
-      if (newStatus === "finished") update.minute = null;
+      if (newStatus === "finished") {
+        update.minute = null;
+        const psScore = ((api.ps_score as string) || "").trim() || null;
+        const outcomes = api.outcomes as Record<string, string | null> | null;
+        const winnerOutcome = outcomes?.penalty_shootout || outcomes?.extra_time || outcomes?.full_time || null;
+        update.pen_score = psScore;
+        update.winner_team_id = winnerOutcome === "1"
+          ? (match as Record<string, unknown>).home_team_id ?? null
+          : winnerOutcome === "2"
+          ? (match as Record<string, unknown>).away_team_id ?? null
+          : null;
+      }
 
       await supabase.from("matches").update(update).eq("id", match.id);
 
