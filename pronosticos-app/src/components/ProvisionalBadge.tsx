@@ -31,12 +31,18 @@ export default function ProvisionalBadge({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
+  const hasPoints = points > 0;
+
   return (
     <span ref={ref} className="relative">
       <button
         type="button"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
-        className="text-xs font-bold text-green-500 tabular-nums hover:text-green-400 transition-colors"
+        className={`text-xs font-bold tabular-nums transition-colors ${
+          hasPoints
+            ? "text-green-500 hover:text-green-400"
+            : "text-slate-400 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-400"
+        }`}
       >
         +{points}
       </button>

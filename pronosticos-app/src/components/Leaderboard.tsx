@@ -88,15 +88,18 @@ export default function Leaderboard({
                 </div>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <UserAvatar displayName={entry.user.name} avatarUrl={entry.user.avatarUrl} size={32} />
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold truncate ${
-                      isHighlighted ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-200"
-                    }`}>
-                      {entry.user.name}
-                      {isHighlighted && (
-                        <span className="ml-1.5 text-xs text-slate-400 font-normal">(tú)</span>
-                      )}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className={`text-sm font-semibold truncate flex-1 ${
+                        isHighlighted ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-200"
+                      }`}>
+                        {entry.user.name}
+                        {isHighlighted && (
+                          <span className="ml-1.5 text-xs text-slate-400 font-normal">(tú)</span>
+                        )}
+                      </p>
+                      {isLive && <RankChange current={entry.rank} previous={entry.previousRank} />}
+                    </div>
                     <p className="text-xs text-slate-400 dark:text-slate-500">{entry.predictions} pronósticos</p>
                   </div>
                 </div>
@@ -107,12 +110,11 @@ export default function Leaderboard({
                   <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
                     {entry.points}
                   </span>
-                  {isLive ? (
+                  {isLive && (
                     <div className="flex items-center gap-1.5">
-                      {entry.provisionalPoints?.map((pts, idx) => {
-                        if (pts <= 0) return null;
-                        const match = liveMatches![idx];
-                        const pred  = entry.provisionalPredictions?.[idx];
+                      {liveMatches!.map((match, idx) => {
+                        const pts  = entry.provisionalPoints?.[idx] ?? 0;
+                        const pred = entry.provisionalPredictions?.[idx];
                         return (
                           <ProvisionalBadge
                             key={idx}
@@ -124,10 +126,7 @@ export default function Leaderboard({
                           />
                         );
                       })}
-                      <RankChange current={entry.rank} previous={entry.previousRank} />
                     </div>
-                  ) : (
-                    <RankChange current={entry.rank} previous={entry.previousRank} />
                   )}
                 </div>
               </Link>
