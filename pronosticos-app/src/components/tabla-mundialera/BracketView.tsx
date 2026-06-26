@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import TeamFlag from "@/components/TeamFlag";
+import { teamToCountryCode } from "@/lib/country-codes";
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
@@ -91,7 +93,8 @@ function MatchCard({ match }: { match: BracketMatch | null }) {
           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
       }`}
     >
-      <div className={`flex items-center gap-1 px-2 flex-1 min-w-0 ${homeWins ? "bg-slate-100/60 dark:bg-slate-700/20" : ""}`}>
+      <div className={`flex items-center gap-1 px-1.5 flex-1 min-w-0 ${homeWins ? "bg-slate-100/60 dark:bg-slate-700/20" : ""}`}>
+        {!PH_RE.test(match.homeTeam) && <TeamFlag countryCode={teamToCountryCode(match.homeTeam)} name={match.homeTeam} size={12} shape="rect" />}
         <span className={`truncate flex-1 leading-none text-[11px] ${teamClass(match.homeTeam, homeWins)}`}>
           {match.homeTeam}
         </span>
@@ -102,7 +105,8 @@ function MatchCard({ match }: { match: BracketMatch | null }) {
         )}
       </div>
       <div className="border-t border-slate-100 dark:border-slate-800 mx-1.5 shrink-0" />
-      <div className={`flex items-center gap-1 px-2 flex-1 min-w-0 ${awayWins ? "bg-slate-100/60 dark:bg-slate-700/20" : ""}`}>
+      <div className={`flex items-center gap-1 px-1.5 flex-1 min-w-0 ${awayWins ? "bg-slate-100/60 dark:bg-slate-700/20" : ""}`}>
+        {!PH_RE.test(match.awayTeam) && <TeamFlag countryCode={teamToCountryCode(match.awayTeam)} name={match.awayTeam} size={12} shape="rect" />}
         <span className={`truncate flex-1 leading-none text-[11px] ${teamClass(match.awayTeam, awayWins)}`}>
           {match.awayTeam}
         </span>

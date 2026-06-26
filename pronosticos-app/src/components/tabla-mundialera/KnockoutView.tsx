@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PHASE_LABELS } from "@/lib/scoring-rules";
+import { teamToCountryCode } from "@/lib/country-codes";
+import TeamFlag from "@/components/TeamFlag";
 import type { TournamentPhase } from "@/lib/types";
 
 const PHASE_ORDER: TournamentPhase[] = [
@@ -47,7 +49,7 @@ function MatchRow({ match }: { match: KMatch }) {
     }`}>
       <div className="flex items-center gap-2 px-3 py-2.5">
         {/* Local */}
-        <div className="flex items-center flex-1 justify-end min-w-0">
+        <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
           <span className={`text-sm truncate text-right ${
             homePH
               ? "text-slate-400 dark:text-slate-500 italic text-xs"
@@ -57,10 +59,11 @@ function MatchRow({ match }: { match: KMatch }) {
           }`}>
             {match.home_team}
           </span>
+          {!homePH && <TeamFlag countryCode={teamToCountryCode(match.home_team)} name={match.home_team} size={16} shape="rect" />}
         </div>
 
         {/* Marcador / separador */}
-        <div className="shrink-0 min-w-[60px] text-center">
+        <div className="shrink-0 min-w-15 text-center">
           {isLive && hasScore ? (
             <div className="flex flex-col items-center gap-0.5">
               <span className="font-black text-lg tabular-nums text-slate-900 dark:text-white">
@@ -78,7 +81,8 @@ function MatchRow({ match }: { match: KMatch }) {
         </div>
 
         {/* Visitante */}
-        <div className="flex items-center flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          {!awayPH && <TeamFlag countryCode={teamToCountryCode(match.away_team)} name={match.away_team} size={16} shape="rect" />}
           <span className={`text-sm truncate ${
             awayPH
               ? "text-slate-400 dark:text-slate-500 italic text-xs"
