@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TeamFlag from "@/components/TeamFlag";
 import { teamToCountryCode } from "@/lib/country-codes";
 
@@ -162,12 +162,16 @@ function ConnectorsSVG() {
 
 // ─── Round labels ─────────────────────────────────────────────────────────────
 
-const ROUND_LABELS = ["R32", "Octavos", "Cuartos", "Semis", "Final"];
+const ROUND_LABELS = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final"];
 
 // ─── BracketView ─────────────────────────────────────────────────────────────
 
 export default function BracketView({ data }: { data: BracketData }) {
-  const [zoom, setZoom] = useState(0.55);
+  const [zoom, setZoom] = useState(0.5);
+
+  useEffect(() => {
+    if (window.innerWidth >= 768) setZoom(1.0);
+  }, []);
 
   const rounds: (BracketMatch | null)[][] = [
     reorder(data.r32, R32_ORDER),
@@ -198,7 +202,7 @@ export default function BracketView({ data }: { data: BracketData }) {
           aria-label="Aumentar zoom"
         >+</button>
         <button
-          onClick={() => setZoom(0.55)}
+          onClick={() => setZoom(window.innerWidth >= 768 ? 1.0 : 0.5)}
           className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors ml-1"
         >
           reset
