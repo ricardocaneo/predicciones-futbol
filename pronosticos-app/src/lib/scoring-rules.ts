@@ -30,8 +30,8 @@ export const ADVANCEMENT_BONUS: Partial<Record<TournamentPhase, number>> = {
 
 export const LIVE_WINDOW_MINUTES = 30;
 
-/** Se bloquea al inicio del primer partido de la segunda fecha de grupos (Czech Republic vs South Africa, 18/06 16:00 UTC) */
-export const MASTER_TOUCH_LOCK_DATE = new Date("2026-06-18T16:00:00Z");
+/** Re-abierto manualmente 26/06. Se bloquea el 27/06 a las 14:00 hrs Santiago (18:00 UTC). */
+export const MASTER_TOUCH_LOCK_DATE = new Date("2026-06-27T18:00:00Z");
 
 export const MASTER_TOUCH_POINTS = {
   champion:   25,
