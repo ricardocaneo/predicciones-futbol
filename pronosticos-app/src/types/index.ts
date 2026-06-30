@@ -46,6 +46,7 @@ export interface Match {
   awayScore?: number;
   minute?: number;
   hasExtraTime?: boolean;
+  penScore?: string | null;
   competition: string;
   round: string;
 }

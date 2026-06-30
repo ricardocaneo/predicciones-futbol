@@ -26,8 +26,8 @@ function extractMatches(data: unknown): Record<string, unknown>[] {
 
 function mapStatus(s: string): "scheduled" | "live" | "finished" {
   const lower = (s ?? "").toLowerCase().trim();
-  // "pen" se elimina de finished: la API lo manda durante la tanda (en vivo). El estado final llega como "FINISHED".
-  if (["ft", "aet", "finished", "awarded", "full time"].includes(lower)) return "finished";
+  // "pen" y "aet" se eliminan de finished: la API los manda durante la fase en curso. El estado final llega como "FINISHED".
+  if (["ft", "finished", "awarded", "full time"].includes(lower)) return "finished";
   if (["sched", "ns", "tbd", "postp", "canc", "susp", "scheduled", ""].includes(lower)) return "scheduled";
   return "live";
 }

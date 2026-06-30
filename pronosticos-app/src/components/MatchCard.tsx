@@ -39,7 +39,7 @@ function TeamCell({ team, size = 48 }: { team: Match["homeTeam"]; size?: number 
 }
 
 export default function MatchCard({ match, prediction, allowPrediction, isOwnPrediction = true }: MatchCardProps) {
-  const { homeTeam, awayTeam, status, homeScore, awayScore, date, time, competition, round, phase, minute } = match;
+  const { homeTeam, awayTeam, status, homeScore, awayScore, date, time, competition, round, phase, minute, penScore } = match;
 
   const canRegular = allowPrediction && canEditRegularPrediction(match);
   const canLive = allowPrediction && canEditLivePrediction(match);
@@ -95,10 +95,20 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
                 initialMinute={minute}
               />
             ) : (
-              <div className="flex items-center gap-2 text-2xl font-black tabular-nums text-slate-800 dark:text-white">
-                <span>{homeScore}</span>
-                <span className="text-slate-300 dark:text-slate-600 text-lg font-normal">-</span>
-                <span>{awayScore}</span>
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="flex items-center gap-2 text-2xl font-black tabular-nums text-slate-800 dark:text-white">
+                  <span>{homeScore}</span>
+                  <span className="text-slate-300 dark:text-slate-600 text-lg font-normal">-</span>
+                  <span>{awayScore}</span>
+                </div>
+                {penScore && (
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 tabular-nums">
+                    <span>({penScore.split("-")[0].trim()}</span>
+                    <span className="font-normal">-</span>
+                    <span>{penScore.split("-")[1].trim()})</span>
+                    <span className="font-normal ml-0.5">pen.</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

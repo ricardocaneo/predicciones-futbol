@@ -15,6 +15,7 @@ export type MatchRow = {
   minute: number | null;
   home_team_id?: string | null;
   away_team_id?: string | null;
+  pen_score?: string | null;
 };
 
 export type PredictionRow = {
@@ -56,6 +57,7 @@ export function rowToMatch(row: MatchRow): Match {
     homeScore: row.home_score ?? undefined,
     awayScore: row.away_score ?? undefined,
     minute: row.minute ?? undefined,
+    penScore: row.pen_score ?? null,
     competition: "Mundial 2026",
     round: groupLabel,
   };

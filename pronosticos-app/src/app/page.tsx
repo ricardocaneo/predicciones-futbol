@@ -23,7 +23,7 @@ export default async function HomePage() {
   const [{ data: matchRows }, { data: profiles }, { data: allPreds }] = await Promise.all([
     supabase
       .from("matches")
-      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, updated_at")
+      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score, updated_at")
       .order("starts_at", { ascending: true }),
     supabase
       .from("profiles")

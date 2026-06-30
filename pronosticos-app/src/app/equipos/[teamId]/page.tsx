@@ -186,7 +186,7 @@ export default async function EquipoPage({ params }: { params: Promise<{ teamId:
 
     supabase
       .from("matches")
-      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, home_team_id, away_team_id, minute")
+      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, home_team_id, away_team_id, minute, pen_score")
       .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
       .order("starts_at", { ascending: true }),
 

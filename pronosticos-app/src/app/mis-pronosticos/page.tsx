@@ -59,12 +59,12 @@ export default async function MisPronosticosPage() {
 
     supabase
       .from("predictions")
-      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode, matches(id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id)")
+      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode, matches(id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score)")
       .eq("user_id", user.id),
 
     supabase
       .from("matches")
-      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id")
+      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score")
       .eq("status", "scheduled")
       .order("starts_at", { ascending: true }),
   ]);
