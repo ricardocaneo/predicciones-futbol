@@ -107,6 +107,7 @@ export default async function RankingPage() {
     predicted_home_score: number;
     predicted_away_score: number;
     prediction_mode: string;
+    points: number;
   };
 
   // Partidos que deben mostrar ranking provisional:
@@ -134,7 +135,7 @@ export default async function RankingPage() {
         validLiveMatches.map((m) =>
           supabase
             .from("predictions")
-            .select("user_id, predicted_home_score, predicted_away_score, prediction_mode")
+            .select("user_id, predicted_home_score, predicted_away_score, prediction_mode, points")
             .eq("match_id", m.id)
         )
       );
@@ -149,6 +150,10 @@ export default async function RankingPage() {
         const result    = { homeScore: m.home_score!, awayScore: m.away_score! };
 
         for (const pred of preds) {
+          // Si ya tiene puntos calculados, edge_save_points_batch ya corrió y esos puntos
+          // están en total_points — no sumar provisional encima para evitar doble conteo.
+          if (pred.points > 0) continue;
+
           const fakePred: Prediction = {
             id: "", userId: pred.user_id, matchId: m.id,
             homeScore: pred.predicted_home_score,
