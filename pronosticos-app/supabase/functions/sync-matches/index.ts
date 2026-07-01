@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       const api = apiById.get(match.external_api_id);
       if (!api) continue;
 
-      const newStatus  = mapStatus(api.status as string ?? "");
+      let mappedStatus = mapStatus(api.status as string ?? "");
       const score      = parseScore((api.score ?? api.ft_score ?? null) as string | null);
       const rawTime    = api.time as string | null;
       const liveTime   = !isMatchTime(rawTime) ? rawTime : null;
@@ -125,6 +125,16 @@ Deno.serve(async (req) => {
       const prevScore  = `${match.home_score}-${match.away_score}`;
       const newHome    = score?.home ?? match.home_score;
       const newAway    = score?.away ?? match.away_score;
+
+      // En eliminatorias, "ft" con empate sin pen_score = fin de 90min, no fin del partido.
+      // El partido sigue en prórroga; solo cerrar si hay ganador o pen_score confirmado.
+      if (mappedStatus === "finished" && match.phase !== "group") {
+        const hasPenScore = !!((api.ps_score as string) || "").trim();
+        if ((api.status as string ?? "").toLowerCase().trim() === "ft" && newHome === newAway && !hasPenScore) {
+          mappedStatus = "live";
+        }
+      }
+      const newStatus = mappedStatus;
       const hasChanged =
         newStatus !== match.status ||
         `${newHome}-${newAway}` !== prevScore ||
