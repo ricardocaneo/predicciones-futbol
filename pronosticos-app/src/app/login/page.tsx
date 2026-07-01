@@ -14,6 +14,7 @@ function LoginForm() {
   const [isPending, setIsPending] = useState(false);
   const searchParams = useSearchParams();
   const linkError    = searchParams.get("error");
+  const next         = searchParams.get("next") ?? "/";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,8 +39,9 @@ function LoginForm() {
       return;
     }
 
-    // Reload completo para que el servidor reciba las cookies de sesión recién seteadas.
-    window.location.replace("/");
+    // Full reload garantiza que el servidor lea la cookie recién seteada.
+    // router.refresh() + router.push() tiene race condition en mobile.
+    window.location.href = next;
   }
 
   return (
