@@ -4,7 +4,9 @@ import { calculatePoints, type PredictionRow } from "./scoring.ts";
 const LIVESCORE_KEY    = Deno.env.get("LIVESCORE_KEY")!;
 const LIVESCORE_SECRET = Deno.env.get("LIVESCORE_SECRET")!;
 const SUPABASE_URL     = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY      = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// SUPABASE_SERVICE_ROLE_KEY es inyectada por Supabase en formato sb_secret_ (ES256),
+// que PostgREST rechaza por clock skew. Usamos EDGE_SERVICE_KEY (HS256 JWT legacy).
+const SERVICE_KEY      = Deno.env.get("EDGE_SERVICE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const COMPETITION_ID   = "362"; // FIFA World Cup 2026
 const BASE             = "https://livescore-api.com/api-client";
 
@@ -26,7 +28,8 @@ function extractMatches(data: unknown): Record<string, unknown>[] {
 
 function mapStatus(s: string): "scheduled" | "live" | "finished" {
   const lower = (s ?? "").toLowerCase().trim();
-  if (["ft", "aet", "pen", "finished", "awarded", "full time"].includes(lower)) return "finished";
+  // "pen" y "aet" se eliminan de finished: la API los manda durante la fase en curso. El estado final llega como "FINISHED".
+  if (["ft", "finished", "awarded", "full time"].includes(lower)) return "finished";
   if (["sched", "ns", "tbd", "postp", "canc", "susp", "scheduled", ""].includes(lower)) return "scheduled";
   return "live";
 }
@@ -51,6 +54,9 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  const url = new URL(req.url);
+  const forceFixtureRefresh = url.searchParams.get("force_refresh") === "1";
+
   try {
     const now         = new Date();
     const windowStart = new Date(now.getTime() - 4 * 60 * 60 * 1000);
@@ -59,7 +65,7 @@ Deno.serve(async (req) => {
     // 1. Partidos activos o próximos en DB
     const { data: upcoming } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
       .eq("status", "scheduled")
       .not("external_api_id", "is", null)
       .gte("starts_at", windowStart.toISOString())
@@ -67,7 +73,7 @@ Deno.serve(async (req) => {
 
     const { data: liveNow } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
       .eq("status", "live")
       .not("external_api_id", "is", null);
 
@@ -77,22 +83,17 @@ Deno.serve(async (req) => {
       ).values(),
     ];
 
-    if (toUpdate.length === 0) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: "no hay partidos activos ni próximos" }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // 2. Traer datos de livescore-api (2 llamadas fijas)
+    // 2. Traer datos de livescore-api (solo si hay partidos activos)
     const syncReceivedAt = new Date().toISOString();
     const todayStr     = now.toISOString().slice(0, 10);
     const yesterdayStr = new Date(now.getTime() - 86_400_000).toISOString().slice(0, 10);
 
-    const [liveData, fixturesData] = await Promise.all([
-      lsGet("/scores/live.json", {}),
-      lsGet("/fixtures/matches.json", { from: yesterdayStr, to: todayStr }),
-    ]);
+    const [liveData, fixturesData] = toUpdate.length > 0
+      ? await Promise.all([
+          lsGet("/scores/live.json", {}),
+          lsGet("/fixtures/matches.json", { from: yesterdayStr, to: todayStr }),
+        ])
+      : [null, null];
 
     const apiById = new Map<string, Record<string, unknown>>();
     const fixtureMatches = (() => {
@@ -164,7 +165,18 @@ Deno.serve(async (req) => {
 
       if (newStatus === "live") update.events = events;
       if (hasChanged) update.last_changed = syncReceivedAt;
-      if (newStatus === "finished") update.minute = null;
+      if (newStatus === "finished") {
+        update.minute = null;
+        const psScore = ((api.ps_score as string) || "").trim() || null;
+        const outcomes = api.outcomes as Record<string, string | null> | null;
+        const winnerOutcome = outcomes?.penalty_shootout || outcomes?.extra_time || outcomes?.full_time || null;
+        update.pen_score = psScore;
+        update.winner_team_id = winnerOutcome === "1"
+          ? (match as Record<string, unknown>).home_team_id ?? null
+          : winnerOutcome === "2"
+          ? (match as Record<string, unknown>).away_team_id ?? null
+          : null;
+      }
 
       await supabase.from("matches").update(update).eq("id", match.id);
 
@@ -173,71 +185,112 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Calcular puntos para partidos recién terminados
-    // Fallback: también incluir partidos ya-finished cuyas predicciones no tienen breakdown
-    // (cubre casos donde la transición se perdió en un sync anterior)
-    const { data: pendingMatches } = await supabase
-      .from("matches")
-      .select("id")
-      .eq("status", "finished")
-      .not("home_score", "is", null)
-      .not("away_score", "is", null);
+    // 4. Calcular puntos via RPC (bypasa RLS en predictions/profiles/group_standings)
+    type PendingPred = PredictionRow;
+    type PendingMatch = {
+      match_id:       string;
+      phase:          string;
+      home_score:     number;
+      away_score:     number;
+      group_name:     string | null;
+      winner_team_id: string | null;
+      predictions:    PendingPred[] | null;
+    };
 
-    for (const pm of pendingMatches ?? []) {
-      const { data: pendingPreds } = await supabase
-        .from("predictions")
-        .select("id")
-        .eq("match_id", pm.id)
-        .is("points_breakdown", null);
-      if (pendingPreds && pendingPreds.length > 0 && !newlyFinished.includes(pm.id)) {
-        newlyFinished.push(pm.id);
+    const { data: pendingData } = await supabase.rpc("edge_get_pending_match_data");
+    const pending = (pendingData as PendingMatch[]) ?? [];
+
+    const affectedGroupNames = new Set<string>();
+    const updates: Array<{ pred_id: string; points: number; breakdown: unknown }> = [];
+
+    for (const matchData of pending) {
+      for (const pred of (matchData.predictions ?? []) as PredictionRow[]) {
+        const result = calculatePoints(matchData.phase, matchData.home_score, matchData.away_score, pred, matchData.winner_team_id);
+        updates.push({ pred_id: pred.id, points: result.points, breakdown: result.breakdown });
+      }
+      if (matchData.phase === "group" && matchData.group_name) {
+        affectedGroupNames.add(matchData.group_name);
       }
     }
 
-    const affectedUsers = new Set<string>();
+    // 5. Guardar puntos y recalcular total_points (todo via RPC con SECURITY DEFINER)
+    let savedPreds = 0;
+    if (updates.length > 0) {
+      await supabase.rpc("edge_save_points_batch", { p_updates: updates });
+      savedPreds = updates.length;
+    }
 
-    for (const matchId of newlyFinished) {
-      const { data: match } = await supabase
+    // 6. Recalcular group_standings para grupos afectados
+    for (const groupName of affectedGroupNames) {
+      await supabase.rpc("edge_recalculate_group_standings", { p_group_name: groupName });
+    }
+
+    // 7. Refresh nombres de equipos en partidos pendientes (solo si algo terminó o se fuerza)
+    let fixturesUpdated = 0;
+
+    if (newlyFinished.length > 0 || forceFixtureRefresh) {
+      const { data: scheduledMatches } = await supabase
         .from("matches")
-        .select("id, phase, home_score, away_score")
-        .eq("id", matchId)
-        .single();
+        .select("id, external_api_id, home_team, away_team, starts_at, home_team_id, away_team_id")
+        .eq("status", "scheduled")
+        .not("external_api_id", "is", null);
 
-      if (!match || match.home_score === null || match.away_score === null) continue;
+      if (scheduledMatches?.length) {
+        const todayStr = now.toISOString().slice(0, 10);
+        const maxDate = (scheduledMatches as Record<string, unknown>[])
+          .map((m) => (m.starts_at as string).slice(0, 10))
+          .reduce((a, b) => (a > b ? a : b));
 
-      const { data: predictions } = await supabase
-        .from("predictions")
-        .select("id, user_id, predicted_home_score, predicted_away_score, prediction_mode")
-        .eq("match_id", matchId);
+        const allFixtures: Record<string, unknown>[] = [];
+        for (let page = 1; page <= 10; page++) {
+          const pageData = await lsGet("/fixtures/matches.json", { from: todayStr, to: maxDate, competition_id: COMPETITION_ID, page: String(page) });
+          if (!pageData) break;
+          const d = pageData as Record<string, unknown>;
+          const pageMatches = extractMatches(pageData);
+          allFixtures.push(...pageMatches);
+          const hasNext = typeof d.next_page === "string" && d.next_page.length > 0;
+          if (!hasNext || pageMatches.length === 0) break;
+        }
 
-      for (const pred of (predictions ?? []) as PredictionRow[]) {
-        const result = calculatePoints(match.phase, match.home_score, match.away_score, pred);
-        await supabase.from("predictions").update({
-          points:           result.points,
-          points_breakdown: result.breakdown,
-        }).eq("id", pred.id);
-        affectedUsers.add(pred.user_id);
+        const fixtureMap = new Map(allFixtures.map((f) => [String(f.id), f]));
+
+        for (const match of scheduledMatches as Record<string, unknown>[]) {
+          const api = fixtureMap.get(match.external_api_id as string);
+          if (!api) continue;
+          const homeName = api.home_name as string;
+          const awayName = api.away_name as string;
+          const namesUnchanged = homeName === match.home_team && awayName === match.away_team;
+          const idsAlreadySet  = !!(match.home_team_id && match.away_team_id);
+          if (namesUnchanged && idsAlreadySet) continue;
+
+          const teamUpdate: Record<string, unknown> = { home_team: homeName, away_team: awayName };
+          if (!match.home_team_id || !match.away_team_id) {
+            const { data: teams } = await supabase
+              .from("teams")
+              .select("id, name")
+              .in("name", [homeName, awayName]);
+            const homeTeamRow = (teams ?? []).find((t: Record<string, unknown>) => t.name === homeName);
+            const awayTeamRow = (teams ?? []).find((t: Record<string, unknown>) => t.name === awayName);
+            if (homeTeamRow) teamUpdate.home_team_id = homeTeamRow.id;
+            if (awayTeamRow) teamUpdate.away_team_id = awayTeamRow.id;
+          }
+
+          await supabase
+            .from("matches")
+            .update(teamUpdate)
+            .eq("id", match.id);
+          fixturesUpdated++;
+        }
       }
-    }
-
-    // 5. Recalcular total_points en profiles
-    for (const userId of affectedUsers) {
-      const { data: userPreds } = await supabase
-        .from("predictions")
-        .select("points")
-        .eq("user_id", userId);
-
-      const total = (userPreds ?? []).reduce((sum: number, p: { points: number | null }) => sum + (p.points ?? 0), 0);
-      await supabase.from("profiles").update({ total_points: total }).eq("id", userId);
     }
 
     return new Response(
       JSON.stringify({
-        checked:           toUpdate.length,
-        finished:          newlyFinished.length,
-        usersRecalculated: affectedUsers.size,
-        debug_api_ids:     [...apiById.keys()],
-        debug_matches:     toUpdate.map(m => ({ id: m.id, ext: m.external_api_id, status: m.status })),
+        checked:         toUpdate.length,
+        finished:        pending.length,
+        predsCalculated: savedPreds,
+        groupsUpdated:   affectedGroupNames.size,
+        fixturesUpdated,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
