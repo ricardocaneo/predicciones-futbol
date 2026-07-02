@@ -8,6 +8,7 @@ import {
   actionSyncLiveMatch,
   actionSyncAll,
   actionProcessMatch,
+  actionForceRecalculateMatch,
   actionListImportedMatches,
   actionCountMatchPredictions,
   actionDeleteMatch,
@@ -17,6 +18,7 @@ import {
   type AdminUser,
 } from "./actions";
 import type { LsMatch } from "@/lib/livescore";
+import SyncHealthPanel from "./SyncHealthPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -223,6 +225,21 @@ function ImportedMatchRow({
     });
   }
 
+  function handleForceRecalculate() {
+    startTransition(async () => {
+      const res = await actionForceRecalculateMatch(match.id);
+      if (res.success) {
+        setResult({
+          ok: true,
+          msg: `↺ Recalculado: ${res.predsCalculated} pronóstico(s) · ${res.usersUpdated} usuario(s)`,
+        });
+        onRefresh();
+      } else {
+        setResult({ ok: false, msg: res.error ?? "Error desconocido" });
+      }
+    });
+  }
+
   const score = match.home_score != null && match.away_score != null
     ? `${match.home_score}–${match.away_score}`
     : "—";
@@ -273,6 +290,14 @@ function ImportedMatchRow({
             disabled={match.status !== "finished"}
           >
             Procesar puntos
+          </Btn>
+          <Btn
+            onClick={handleForceRecalculate}
+            loading={pending}
+            variant="default"
+            disabled={match.status !== "finished"}
+          >
+            ↺ Forzar recálculo
           </Btn>
           <Btn
             onClick={handleDeleteClick}
@@ -463,7 +488,7 @@ const todayStr = new Date().toISOString().slice(0, 10);
 const threeDaysAgoStr = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
 
 export default function AdminPanel({ initialImported }: { initialImported: ImportedMatch[] }) {
-  const [activeTab, setActiveTab] = useState<"partidos" | "usuarios">("partidos");
+  const [activeTab, setActiveTab] = useState<"partidos" | "usuarios" | "salud">("partidos");
   const [apiSource, setApiSource] = useState<"live" | "today" | "recent">("live");
   const [fixtureDate, setFixtureDate] = useState(todayStr);
   const [historyFrom, setHistoryFrom] = useState(threeDaysAgoStr);
@@ -532,7 +557,7 @@ export default function AdminPanel({ initialImported }: { initialImported: Impor
 
       {/* ── Tabs ── */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
-        {(["partidos", "usuarios"] as const).map((tab) => (
+        {(["partidos", "usuarios", "salud"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -542,12 +567,14 @@ export default function AdminPanel({ initialImported }: { initialImported: Impor
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             }`}
           >
-            {tab === "partidos" ? "Partidos" : "Usuarios"}
+            {tab === "partidos" ? "Partidos" : tab === "usuarios" ? "Usuarios" : "Salud del sync"}
           </button>
         ))}
       </div>
 
       {activeTab === "usuarios" && <UsersSection />}
+
+      {activeTab === "salud" && <SyncHealthPanel />}
 
       {activeTab === "partidos" && <>
 

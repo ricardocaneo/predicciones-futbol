@@ -165,6 +165,83 @@ export async function actionDeleteUser(userId: string) {
   }
 }
 
+// ─── Sync health ──────────────────────────────────────────────────────────────
+
+// ─── Force recalculate match points ──────────────────────────────────────────
+
+export async function actionForceRecalculateMatch(matchId: string) {
+  try {
+    const supabase = createAdminClient();
+
+    const { data: match, error: matchErr } = await supabase
+      .from("matches")
+      .select("home_score, away_score, winner_team_id, pen_score, time, status")
+      .eq("id", matchId)
+      .single();
+    if (matchErr || !match) throw new Error(matchErr?.message ?? "Partido no encontrado");
+    if (match.status !== "finished") throw new Error("El partido no está finalizado");
+
+    // Reset all predictions for this match
+    const { error: resetErr } = await supabase
+      .from("predictions")
+      .update({ points: 0, points_breakdown: null })
+      .eq("match_id", matchId);
+    if (resetErr) throw new Error(resetErr.message);
+
+    // Recalculate atomically
+    const { data: rpc, error: rpcErr } = await supabase.rpc("edge_finish_match_and_calculate", {
+      p_match_id:       matchId,
+      p_home_score:     match.home_score,
+      p_away_score:     match.away_score,
+      p_winner_team_id: match.winner_team_id,
+      p_pen_score:      match.pen_score,
+      p_time:           match.time,
+      p_last_synced_at: new Date().toISOString(),
+    });
+    if (rpcErr) throw new Error(rpcErr.message);
+
+    const r = rpc as { predsCalculated: number; usersUpdated: number };
+    return { success: true as const, predsCalculated: r.predsCalculated ?? 0, usersUpdated: r.usersUpdated ?? 0 };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
+// ─── Sync health ──────────────────────────────────────────────────────────────
+
+export async function actionGetSyncHealth() {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.rpc("admin_get_sync_health");
+    if (error) throw new Error(error.message);
+    const r = data as {
+      cron_responses: { created: string; status_code: number; content: string }[];
+      orphaned_matches: {
+        match_id: string; home_team: string; away_team: string;
+        home_score: number | null; away_score: number | null;
+        pen_score: string | null; phase: string;
+        winner_team_id: string | null; time: string | null;
+        orphaned_count: number;
+      }[];
+    };
+    return { success: true as const, cronResponses: r.cron_responses ?? [], orphanedMatches: r.orphaned_matches ?? [] };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
+export async function actionRepairOrphanedPredictions() {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.rpc("admin_repair_orphaned_predictions");
+    if (error) throw new Error(error.message);
+    const r = data as { matchesFixed: number; predsCalculated: number };
+    return { success: true as const, matchesFixed: r.matchesFixed ?? 0, predsCalculated: r.predsCalculated ?? 0 };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
 // ─── Matches ──────────────────────────────────────────────────────────────────
 
 export async function actionDeleteMatch(matchId: string) {
