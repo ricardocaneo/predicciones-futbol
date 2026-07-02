@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,24 +17,36 @@ export default async function TestConexionPage() {
     profile = data;
   }
 
-  let matches: Record<string, unknown>[] = [];
-  let errorMessage: string | null = null;
-
+  // Test via composite client (createClient)
+  let compositeError: string | null = null;
+  let compositeCount = 0;
   try {
     const { data, error } = await supabase
       .from("matches")
       .select("*")
       .order("starts_at", { ascending: true });
     if (error) throw error;
-    matches = data ?? [];
+    compositeCount = data?.length ?? 0;
   } catch (e) {
-    errorMessage =
-      e instanceof Error
-        ? e.message
-        : (e as { message?: string })?.message ?? JSON.stringify(e);
+    compositeError = (e as { message?: string })?.message ?? JSON.stringify(e);
   }
 
-  const ok = errorMessage === null;
+  // Test via adminClient directo (aislado, sin pasar por createClient)
+  let adminError: string | null = null;
+  let adminCount = 0;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("matches")
+      .select("id")
+      .limit(1);
+    if (error) throw error;
+    adminCount = data?.length ?? 0;
+  } catch (e) {
+    adminError = (e as { message?: string })?.message ?? JSON.stringify(e);
+  }
+
+  const ok = compositeError === null;
 
   return (
     <div className="space-y-6">
@@ -43,22 +55,8 @@ export default async function TestConexionPage() {
           Prueba de Conexión
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-          Verifica que la app puede leer datos desde Supabase.
+          Diagnóstico de acceso a Supabase.
         </p>
-      </div>
-
-      <div className={`rounded-2xl px-5 py-4 flex items-start gap-3 border ${ok ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/40" : "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/40"}`}>
-        <span className={`text-lg mt-0.5 ${ok ? "text-green-500" : "text-red-500"}`}>
-          {ok ? "✓" : "✗"}
-        </span>
-        <div>
-          <p className={`font-semibold text-sm ${ok ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
-            {ok ? "Conexión con Supabase exitosa" : "Error al conectar con Supabase"}
-          </p>
-          {!ok && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-mono">{errorMessage}</p>
-          )}
-        </div>
       </div>
 
       {/* Sesión */}
@@ -79,10 +77,48 @@ export default async function TestConexionPage() {
               <span className="text-sm text-slate-700 dark:text-slate-200">
                 {profile
                   ? `Perfil encontrado: ${String(profile.display_name)}`
-                  : "Perfil NO encontrado en la tabla profiles (trigger no corrió)"}
+                  : "Perfil NO encontrado en la tabla profiles"}
               </span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Diagnóstico de queries */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Diagnóstico de queries</p>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          {/* Test 1: composite client */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+              createClient() → matches
+            </p>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${!compositeError ? "bg-green-400" : "bg-red-400"}`} />
+              <span className="text-sm text-slate-700 dark:text-slate-200">
+                {!compositeError
+                  ? `OK — ${compositeCount} filas`
+                  : <span className="font-mono text-red-500">{compositeError}</span>}
+              </span>
+            </div>
+          </div>
+
+          {/* Test 2: adminClient directo */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+              createAdminClient() directo → matches
+            </p>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${!adminError ? "bg-green-400" : "bg-red-400"}`} />
+              <span className="text-sm text-slate-700 dark:text-slate-200">
+                {!adminError
+                  ? `OK — ${adminCount} fila(s)`
+                  : <span className="font-mono text-red-500">{adminError}</span>}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -92,48 +128,14 @@ export default async function TestConexionPage() {
             <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
               Tabla <code className="font-mono text-wc-red">matches</code>
             </p>
-            <span className="text-xs text-slate-400">{matches.length} {matches.length === 1 ? "fila" : "filas"}</span>
+            <span className="text-xs text-slate-400">{compositeCount} filas</span>
           </div>
-
-          {matches.length === 0 ? (
-            <div className="px-5 py-8 text-center">
-              <p className="text-2xl mb-2">📭</p>
-              <p className="font-medium text-slate-600 dark:text-slate-300 text-sm">
-                Conexión OK, pero no hay partidos cargados
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Podés insertar datos de prueba desde el SQL Editor de Supabase.
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-slate-50 dark:divide-slate-800">
-              {matches.map((m) => (
-                <li key={String(m.id)} className="px-5 py-3 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
-                      {String(m.home_team)} vs {String(m.away_team)}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {String(m.phase)} · {m.starts_at ? new Date(String(m.starts_at)).toLocaleString("es-CL") : "—"}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                    m.status === "live" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : m.status === "finished" ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  }`}>
-                    {String(m.status)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       )}
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 px-5 py-4 space-y-2">
         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Variables de entorno</p>
-        {(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] as const).map((key) => {
+        {(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"] as const).map((key) => {
           const val = process.env[key];
           return (
             <div key={key} className="flex items-center gap-2">

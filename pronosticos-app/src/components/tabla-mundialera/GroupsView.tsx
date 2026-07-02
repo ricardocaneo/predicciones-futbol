@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import TeamFlag from "@/components/TeamFlag";
 import Link from "next/link";
 
@@ -162,7 +162,7 @@ function GroupCard({ group, matches, codeMap }: { group: GroupInfo; matches: Mat
 }
 
 export default async function GroupsView() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [
     { data: groupData,    error: groupErr    },

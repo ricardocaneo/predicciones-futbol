@@ -6,7 +6,7 @@ import Navbar, { type NavbarUser } from "@/components/Navbar";
 import AuthListener from "@/components/AuthListener";
 import ThemeRestorer from "@/components/ThemeRestorer";
 import AccountInactive from "@/components/AccountInactive";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
@@ -25,7 +25,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   let navbarUser: NavbarUser = null;
   if (user) {
-    const { data: profile } = await supabase
+    const admin = createAdminClient();
+    const { data: profile } = await admin
       .from("profiles")
       .select("display_name, email, avatar_url, theme, is_active")
       .eq("id", user.id)

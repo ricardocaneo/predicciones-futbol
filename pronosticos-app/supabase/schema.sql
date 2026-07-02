@@ -525,18 +525,21 @@ create policy "master_touch: update own"
 grant usage on schema public to anon, authenticated;
 
 -- profiles: lectura pública, escritura solo al dueño (vía RLS)
-grant select         on public.profiles                 to anon, authenticated;
-grant update         on public.profiles                 to authenticated;
+grant select                       on public.profiles to anon, authenticated;
+grant update                       on public.profiles to authenticated;
+grant select, insert, update       on public.profiles to service_role;
 
 -- matches: lectura pública; escritura solo desde service_role (seed/admin)
-grant select                    on public.matches to anon, authenticated;
-grant select, insert, update    on public.matches to service_role;
+grant select                       on public.matches to anon, authenticated;
+grant select, insert, update       on public.matches to service_role;
 
 -- predictions: el usuario autenticado puede leer, insertar y actualizar
-grant select, insert, update on public.predictions              to authenticated;
+grant select, insert, update       on public.predictions to authenticated;
+grant select, insert, update       on public.predictions to service_role;
 
 -- master_touch_predictions: ídem predictions
-grant select, insert, update on public.master_touch_predictions to authenticated;
+grant select, insert, update       on public.master_touch_predictions to authenticated;
+grant select, insert, update       on public.master_touch_predictions to service_role;
 
 -- chat_messages: solo usuarios autenticados pueden leer e insertar
 grant select, insert on public.chat_messages to authenticated;
