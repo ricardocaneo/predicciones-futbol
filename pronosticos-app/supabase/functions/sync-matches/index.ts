@@ -173,26 +173,35 @@ Deno.serve(async (req) => {
         sync_error:       syncError,
       };
 
+      const psScore = ((api.ps_score as string) || "").trim() || null;
+      const outcomes = api.outcomes as Record<string, string | null> | null;
+      const winnerOutcome = outcomes?.penalty_shootout || outcomes?.extra_time || outcomes?.full_time || null;
+      const winnerTeamId = winnerOutcome === "1"
+        ? (match as Record<string, unknown>).home_team_id as string ?? null
+        : winnerOutcome === "2"
+        ? (match as Record<string, unknown>).away_team_id as string ?? null
+        : null;
+
+      // Partido que termina ahora: RPC atómico que cierra el partido Y calcula puntos
+      // en una sola transacción → elimina la ventana de race condition.
+      if (newStatus === "finished" && match.status !== "finished") {
+        await supabase.rpc("edge_finish_match_and_calculate", {
+          p_match_id:       match.id,
+          p_home_score:     newHome,
+          p_away_score:     newAway,
+          p_winner_team_id: winnerTeamId,
+          p_pen_score:      psScore,
+          p_time:           liveTime,
+          p_last_synced_at: syncReceivedAt,
+        });
+        newlyFinished.push(match.id);
+        continue;
+      }
+
       if (newStatus === "live") update.events = events;
       if (hasChanged) update.last_changed = syncReceivedAt;
-      if (newStatus === "finished") {
-        update.minute = null;
-        const psScore = ((api.ps_score as string) || "").trim() || null;
-        const outcomes = api.outcomes as Record<string, string | null> | null;
-        const winnerOutcome = outcomes?.penalty_shootout || outcomes?.extra_time || outcomes?.full_time || null;
-        update.pen_score = psScore;
-        update.winner_team_id = winnerOutcome === "1"
-          ? (match as Record<string, unknown>).home_team_id ?? null
-          : winnerOutcome === "2"
-          ? (match as Record<string, unknown>).away_team_id ?? null
-          : null;
-      }
 
       await supabase.from("matches").update(update).eq("id", match.id);
-
-      if (newStatus === "finished" && match.status !== "finished") {
-        newlyFinished.push(match.id);
-      }
     }
 
     // 4. Calcular puntos via RPC (bypasa RLS en predictions/profiles/group_standings)
