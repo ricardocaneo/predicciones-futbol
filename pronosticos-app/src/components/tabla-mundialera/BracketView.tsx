@@ -21,8 +21,16 @@ const TOTAL_W = 5 * CARD_W + 4 * GAP_W;              // 812
 // Maps display position → chronological index so adjacent pairs feed the same
 // next-round match, enabling clean connecting lines.
 
-const R32_ORDER = [0, 2, 1, 4, 10, 11, 8, 9, 3, 5, 6, 7, 13, 15, 12, 14];
-const R16_ORDER = [0, 1, 4, 5, 2, 3, 6, 7];
+// R32: cada par adyacente alimenta el mismo partido de R16.
+// Índices derivados de starts_at real en DB (UTC):
+// R16[0]←(R32[0],R32[3]), R16[1]←(R32[5],R32[2]),
+// R16[3]←(R32[6],R32[7]), R16[5]←(R32[9],R32[8]),
+// R16[2]←(R32[1],R32[4]), R16[4]←(R32[10],R32[11]),
+// R16[7]←(R32[12],R32[15]), R16[6]←(R32[14],R32[13])
+const R32_ORDER = [0, 3, 5, 2, 6, 7, 9, 8, 1, 4, 10, 11, 12, 15, 14, 13];
+// R16: QF[0]←(R16[0],R16[1]), QF[1]←(R16[3],R16[5]),
+//      QF[2]←(R16[2],R16[4]), QF[3]←(R16[7],R16[6])
+const R16_ORDER = [0, 1, 3, 5, 2, 4, 7, 6];
 // QF (4), SF (2), Final (1): chronological order is already correct
 
 function reorder<T>(arr: T[], order: number[]): (T | null)[] {
@@ -39,6 +47,7 @@ export type BracketMatch = {
   awayScore: number | null;
   status: string;
   startsAt: string;
+  winnerSide: "home" | "away" | null;
 };
 
 export type BracketData = {
@@ -67,8 +76,8 @@ function MatchCard({ match }: { match: BracketMatch | null }) {
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
   const hasScore   = match.homeScore !== null && match.awayScore !== null;
-  const homeWins   = hasScore && match.homeScore! > match.awayScore!;
-  const awayWins   = hasScore && match.awayScore! > match.homeScore!;
+  const homeWins   = match.winnerSide === "home";
+  const awayWins   = match.winnerSide === "away";
 
   function teamClass(name: string, isWinner: boolean) {
     if (PH_RE.test(name)) return "text-slate-400 dark:text-slate-600 italic";
@@ -156,6 +165,61 @@ function ConnectorsSVG() {
       fill="none"
     >
       {[0, 1, 2, 3].map(r => drawRound(r))}
+    </svg>
+  );
+}
+
+// ─── Winner path overlay ──────────────────────────────────────────────────────
+// For each connector between rounds, if the source match is finished,
+// draws a colored path from the winner's slot (top or bottom) through the
+// connector bracket arm and stem into the next-round card position.
+// Adjacent highlighted segments naturally form a continuous winner trail.
+
+function WinnerPathSVG({ rounds }: { rounds: (BracketMatch | null)[][] }) {
+  const segments: string[] = [];
+
+  for (let r = 0; r < 4; r++) {
+    const slotH     = SLOT0 * (1 << r);
+    const pairCount = (N_R32 >> r) >> 1;
+    const x0        = r * (CARD_W + GAP_W) + CARD_W;
+    const x1        = x0 + CONN_W;
+    const x2        = x0 + GAP_W;
+
+    for (let p = 0; p < pairCount; p++) {
+      const top  = rounds[r]?.[2 * p];
+      const bot  = rounds[r]?.[2 * p + 1];
+      const topY = HEADER + slotH * (2 * p)     + slotH / 2;
+      const botY = HEADER + slotH * (2 * p + 1) + slotH / 2;
+      const midY = (topY + botY) / 2;
+
+      if (top?.winnerSide) {
+        segments.push(`M${x0},${topY} L${x1},${topY} L${x1},${midY} L${x2},${midY}`);
+      }
+      if (bot?.winnerSide) {
+        segments.push(`M${x0},${botY} L${x1},${botY} L${x1},${midY} L${x2},${midY}`);
+      }
+    }
+  }
+
+  if (!segments.length) return null;
+
+  return (
+    <svg
+      style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", overflow: "visible" }}
+      width={TOTAL_W}
+      height={TOTAL_H}
+      fill="none"
+    >
+      {segments.map((d, i) => (
+        <path
+          key={i}
+          d={d}
+          stroke="#f59e0b"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
     </svg>
   );
 }
@@ -257,6 +321,8 @@ export default function BracketView({ data }: { data: BracketData }) {
 
             {/* Connecting lines SVG */}
             <ConnectorsSVG />
+            {/* Winner path overlay */}
+            <WinnerPathSVG rounds={rounds} />
           </div>
         </div>
       </div>

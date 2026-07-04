@@ -541,6 +541,9 @@ grant select, insert, update       on public.predictions to service_role;
 grant select, insert, update       on public.master_touch_predictions to authenticated;
 grant select, insert, update       on public.master_touch_predictions to service_role;
 
+-- goals_from_events (view): lectura pública + service_role para consultas backend
+grant select on public.goals_from_events to anon, authenticated, service_role;
+
 -- chat_messages: solo usuarios autenticados pueden leer e insertar
 grant select, insert on public.chat_messages to authenticated;
 

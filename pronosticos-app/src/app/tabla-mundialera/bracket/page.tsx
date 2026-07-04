@@ -12,23 +12,37 @@ export default async function BracketPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("matches")
-    .select("id, home_team, away_team, home_score, away_score, status, starts_at, phase")
+    .select("id, home_team, away_team, home_team_id, away_team_id, winner_team_id, home_score, away_score, status, starts_at, phase")
     .neq("phase", "group")
     .order("starts_at", { ascending: true });
 
   const all = data ?? [];
 
+  function winnerSide(m: typeof all[0]): "home" | "away" | null {
+    if (m.status !== "finished") return null;
+    if (m.winner_team_id) {
+      if (m.winner_team_id === m.home_team_id) return "home";
+      if (m.winner_team_id === m.away_team_id) return "away";
+    }
+    if (m.home_score !== null && m.away_score !== null) {
+      if (m.home_score > m.away_score) return "home";
+      if (m.away_score > m.home_score) return "away";
+    }
+    return null;
+  }
+
   function byPhase(phase: string): BracketMatch[] {
     return all
       .filter(m => m.phase === phase)
       .map(m => ({
-        id:        m.id,
-        homeTeam:  m.home_team,
-        awayTeam:  m.away_team,
-        homeScore: m.home_score,
-        awayScore: m.away_score,
-        status:    m.status as BracketMatch["status"],
-        startsAt:  m.starts_at,
+        id:         m.id,
+        homeTeam:   m.home_team,
+        awayTeam:   m.away_team,
+        homeScore:  m.home_score,
+        awayScore:  m.away_score,
+        status:     m.status as BracketMatch["status"],
+        startsAt:   m.starts_at,
+        winnerSide: winnerSide(m),
       }));
   }
 
