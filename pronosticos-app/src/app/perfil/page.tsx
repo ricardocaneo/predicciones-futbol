@@ -15,7 +15,7 @@ export default async function PerfilPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/perfil");
 
-  const [{ data: profile }, { data: predCount }, { data: mt }] = await Promise.all([
+  const [{ data: profile }, { count: predCount }, { data: mt }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, email, avatar_url, bio, favorite_team, total_points")
@@ -45,7 +45,7 @@ export default async function PerfilPage() {
   const goldenBoot = mt?.golden_boot as unknown as PlayerJoin;
   const masterTouchLocked = new Date() >= MASTER_TOUCH_LOCK_DATE;
 
-  const totalPreds = (predCount as unknown as { count: number } | null)?.count ?? 0;
+  const totalPreds = predCount ?? 0;
 
   return (
     <div className="space-y-6">
