@@ -108,13 +108,51 @@ Deno.serve(async (req) => {
       if (m.fixture_id != null) apiById.set(String(m.fixture_id), m);
     }
 
+    // Fallback: si algún partido live no aparece en los feeds normales, consultar history.
+    // Los partidos terminados desaparecen de /scores/live.json y /fixtures/matches.json,
+    // pero siguen disponibles en /scores/history.json.
+    const missingLive = (liveNow ?? []).filter(
+      (m) => m.external_api_id && !apiById.has(m.external_api_id)
+    );
+    if (missingLive.length > 0) {
+      const historyData = await lsGet("/scores/history.json", { from: yesterdayStr, to: todayStr });
+      for (const m of extractMatches(historyData)) {
+        apiById.set(String(m.id), m);
+        if (m.fixture_id != null) apiById.set(String(m.fixture_id), m);
+      }
+    }
+
     // 3. Actualizar cada partido
     const newlyFinished: string[] = [];
 
     for (const match of toUpdate) {
       if (!match.external_api_id) continue;
       const api = apiById.get(match.external_api_id);
-      if (!api) continue;
+      if (!api) {
+        // Si después de history tampoco aparece y lleva más de 6 horas live, cerrar con el score actual.
+        if (match.status === "live" && match.home_score !== null && match.away_score !== null) {
+          const startsAt  = new Date((match as Record<string, unknown>).starts_at as string ?? 0);
+          const hoursLive = (now.getTime() - startsAt.getTime()) / (1000 * 60 * 60);
+          if (hoursLive >= 6) {
+            const winnerTeamId = match.home_score > match.away_score
+              ? (match as Record<string, unknown>).home_team_id as string
+              : match.away_score > match.home_score
+              ? (match as Record<string, unknown>).away_team_id as string
+              : null;
+            await supabase.rpc("edge_finish_match_and_calculate", {
+              p_match_id:       match.id,
+              p_home_score:     match.home_score,
+              p_away_score:     match.away_score,
+              p_winner_team_id: winnerTeamId,
+              p_pen_score:      null,
+              p_time:           null,
+              p_last_synced_at: syncReceivedAt,
+            });
+            newlyFinished.push(match.id);
+          }
+        }
+        continue;
+      }
 
       let mappedStatus = mapStatus(api.status as string ?? "");
       const score      = parseScore((api.score ?? api.ft_score ?? null) as string | null);
