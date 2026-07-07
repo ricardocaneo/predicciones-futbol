@@ -24,15 +24,12 @@ export default async function RankingPage() {
     matches: { status: string; home_score: number | null; away_score: number | null } | null;
   };
 
-  const [{ data: profiles }, { data: allPreds }, { data: liveMatchRows }, { data: phaseRows }, { data: chatRows }] = await Promise.all([
+  const [{ data: profiles }, { data: liveMatchRows }, { data: phaseRows }, { data: chatRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, total_points, last_read_at")
       .eq("is_active", true)
       .order("total_points", { ascending: false }),
-    supabase
-      .from("predictions")
-      .select("user_id, predicted_home_score, predicted_away_score, matches(status, home_score, away_score)"),
     supabase
       .from("matches")
       .select("id, phase, home_team, away_team, home_score, away_score, minute, time")
@@ -49,6 +46,21 @@ export default async function RankingPage() {
       .limit(100),
   ]);
 
+  // Paginación para superar el límite de 1000 filas de PostgREST
+  const allPreds: PredRow[] = [];
+  const PAGE = 1000;
+  let offset = 0;
+  while (true) {
+    const { data: batch } = await supabase
+      .from("predictions")
+      .select("user_id, predicted_home_score, predicted_away_score, matches(status, home_score, away_score)")
+      .range(offset, offset + PAGE - 1);
+    const rows = (batch as unknown as PredRow[] | null) ?? [];
+    allPreds.push(...rows);
+    if (rows.length < PAGE) break;
+    offset += PAGE;
+  }
+
   // Fase más avanzada con partidos activos → determina qué matriz de puntos mostrar
   const activePhasesSet = new Set((phaseRows ?? []).map((r) => r.phase as TournamentPhase));
   const currentPhase = [...PHASE_ORDER].reverse().find((p) => activePhasesSet.has(p)) ?? "group";
@@ -59,7 +71,7 @@ export default async function RankingPage() {
   const predCounts  = new Map<string, number>();
   const exactCounts = new Map<string, number>();
 
-  for (const row of (allPreds ?? [])) {
+  for (const row of allPreds) {
     const p = row as unknown as PredRow;
     predCounts.set(p.user_id, (predCounts.get(p.user_id) ?? 0) + 1);
 
