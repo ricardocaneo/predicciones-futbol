@@ -10,12 +10,16 @@ export default function ProvisionalBadge({
   awayTeam,
   predHomeScore,
   predAwayScore,
+  phase,
+  advancingTeamName,
 }: {
   points: number;
   homeTeam: string;
   awayTeam: string;
   predHomeScore: number | null;
   predAwayScore: number | null;
+  phase?: string;
+  advancingTeamName?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -62,6 +66,13 @@ export default function ProvisionalBadge({
             </p>
           ) : (
             <p className="text-slate-400 italic text-center">Sin pronóstico</p>
+          )}
+          {phase && phase !== "group" && advancingTeamName && (
+            <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-slate-700 text-slate-400">
+              <span className="text-slate-500 text-[10px]">pasa</span>
+              <TeamFlag countryCode={teamToCountryCode(advancingTeamName)} name={advancingTeamName} size={12} />
+              <span className="text-[11px]">{advancingTeamName}</span>
+            </div>
           )}
           {/* pequeño triángulo apuntando hacia abajo */}
           <span className="absolute top-full right-3 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700" />

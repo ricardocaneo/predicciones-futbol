@@ -32,7 +32,7 @@ export default async function RankingPage() {
       .order("total_points", { ascending: false }),
     supabase
       .from("matches")
-      .select("id, phase, home_team, away_team, home_score, away_score, minute, time")
+      .select("id, phase, home_team, away_team, home_score, away_score, minute, time, home_team_id, away_team_id")
       .eq("status", "live")
       .limit(5),
     supabase
@@ -113,6 +113,8 @@ export default async function RankingPage() {
     away_score: number | null;
     minute: number | null;
     time: string | null;
+    home_team_id: string | null;
+    away_team_id: string | null;
   };
   type LivePredRow = {
     user_id: string;
@@ -120,6 +122,7 @@ export default async function RankingPage() {
     predicted_away_score: number;
     prediction_mode: string;
     points: number;
+    advancing_team_id: string | null;
   };
 
   // Partidos que deben mostrar ranking provisional:
@@ -147,14 +150,14 @@ export default async function RankingPage() {
         validLiveMatches.map((m) =>
           supabase
             .from("predictions")
-            .select("user_id, predicted_home_score, predicted_away_score, prediction_mode, points")
+            .select("user_id, predicted_home_score, predicted_away_score, prediction_mode, points, advancing_team_id")
             .eq("match_id", m.id)
         )
       );
 
       // Por usuario: array de puntos y pronósticos, uno por partido en vivo
       const provisionalPerMatchMap = new Map<string, number[]>();
-      const provisionalPredMap     = new Map<string, { homeScore: number | null; awayScore: number | null }[]>();
+      const provisionalPredMap     = new Map<string, { homeScore: number | null; awayScore: number | null; advancingTeamName: string | null }[]>();
 
       validLiveMatches.forEach((m, idx) => {
         const preds = (allPredsResults[idx].data as unknown as LivePredRow[] | null) ?? [];
@@ -174,13 +177,17 @@ export default async function RankingPage() {
           };
           const pts = calculateMatchPoints(fakeMatch, fakePred, result);
 
+          const advancingTeamName = pred.advancing_team_id === m.home_team_id ? m.home_team
+            : pred.advancing_team_id === m.away_team_id ? m.away_team
+            : null;
+
           const currentPts  = provisionalPerMatchMap.get(pred.user_id) ?? new Array(validLiveMatches.length).fill(0);
           currentPts[idx]   = pts.totalPoints;
           provisionalPerMatchMap.set(pred.user_id, currentPts);
 
           const currentPred = provisionalPredMap.get(pred.user_id) ??
-            Array.from({ length: validLiveMatches.length }, () => ({ homeScore: null as number | null, awayScore: null as number | null }));
-          currentPred[idx]  = { homeScore: pred.predicted_home_score, awayScore: pred.predicted_away_score };
+            Array.from({ length: validLiveMatches.length }, () => ({ homeScore: null as number | null, awayScore: null as number | null, advancingTeamName: null as string | null }));
+          currentPred[idx]  = { homeScore: pred.predicted_home_score, awayScore: pred.predicted_away_score, advancingTeamName };
           provisionalPredMap.set(pred.user_id, currentPred);
         }
       });
@@ -209,6 +216,7 @@ export default async function RankingPage() {
         awayScore: m.away_score!,
         minute:    m.minute,
         time:      m.time ?? null,
+        phase:     m.phase,
       }));
     } catch {
       // Falla silenciosa — se muestra el ranking oficial

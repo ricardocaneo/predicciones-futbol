@@ -12,6 +12,7 @@ type LiveMatchInfo = {
   awayScore: number;
   minute:    number | null;
   time:      string | null;
+  phase:     string;
 };
 
 function RankChange({ current, previous }: { current: number; previous: number }) {
@@ -123,6 +124,8 @@ export default function Leaderboard({
                             awayTeam={match.awayTeam}
                             predHomeScore={pred?.homeScore ?? null}
                             predAwayScore={pred?.awayScore ?? null}
+                            phase={match.phase}
+                            advancingTeamName={(pred as { advancingTeamName?: string | null } | undefined)?.advancingTeamName ?? null}
                           />
                         );
                       })}
