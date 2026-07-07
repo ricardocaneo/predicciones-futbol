@@ -47,6 +47,7 @@ export interface Match {
   minute?: number;
   hasExtraTime?: boolean;
   penScore?: string | null;
+  winnerTeamId?: string | null;
   competition: string;
   round: string;
 }

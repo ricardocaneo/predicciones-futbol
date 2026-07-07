@@ -59,12 +59,12 @@ export default async function MisPronosticosPage() {
 
     supabase
       .from("predictions")
-      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode, matches(id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score)")
+      .select("id, match_id, predicted_home_score, predicted_away_score, prediction_mode, advancing_team_id, matches(id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score, winner_team_id)")
       .eq("user_id", user.id),
 
     supabase
       .from("matches")
-      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score")
+      .select("id, phase, group_name, home_team, away_team, starts_at, status, home_score, away_score, minute, home_team_id, away_team_id, pen_score, winner_team_id")
       .eq("status", "scheduled")
       .order("starts_at", { ascending: true }),
   ]);
@@ -79,6 +79,7 @@ export default async function MisPronosticosPage() {
       homeScore: row.predicted_home_score,
       awayScore: row.predicted_away_score,
       isLive: row.prediction_mode === "live",
+      advancingTeamId: (row as unknown as { advancing_team_id?: string | null }).advancing_team_id ?? null,
     };
     return { ...prediction, match };
   });

@@ -91,10 +91,17 @@ export function calculateMatchPoints(
     category = "consolation";
   }
 
-  // Bono por clasificado: tendencia correcta en eliminatoria
+  // Bono por clasificado: igual que el RPC SQL — si hay advancing_team_id y winner_team_id
+  // se comparan directamente; si falta alguno, se usa la tendencia como fallback.
   let advancementBonus = 0;
-  if (isKnockout && isTendencyCorrect) {
-    advancementBonus = ADVANCEMENT_BONUS[phase] ?? 0;
+  if (isKnockout) {
+    const { advancingTeamId } = prediction;
+    const { winnerTeamId } = match;
+    const advancementApplies =
+      advancingTeamId && winnerTeamId
+        ? advancingTeamId === winnerTeamId
+        : isTendencyCorrect;
+    if (advancementApplies) advancementBonus = ADVANCEMENT_BONUS[phase] ?? 0;
   }
 
   const total = base + advancementBonus;
