@@ -141,6 +141,7 @@ export default async function RankingPage() {
     homeTeam: string; awayTeam: string;
     homeScore: number; awayScore: number;
     minute: number | null; time: string | null;
+    phase: string;
   }[] = [];
 
   if (validLiveMatches.length > 0) {
