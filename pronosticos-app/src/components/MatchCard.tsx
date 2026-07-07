@@ -55,6 +55,15 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
 
   const isKnockout = phase !== "group";
 
+  const advancingTeam =
+    isKnockout && prediction?.advancingTeamId
+      ? prediction.advancingTeamId === homeTeam.id
+        ? { name: homeTeam.name, countryCode: homeTeam.countryCode }
+        : prediction.advancingTeamId === awayTeam.id
+        ? { name: awayTeam.name, countryCode: awayTeam.countryCode }
+        : null
+      : null;
+
   return (
     <div className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden border ${
       prediction
@@ -158,6 +167,7 @@ export default function MatchCard({ match, prediction, allowPrediction, isOwnPre
             awayTeamId={awayTeam.id}
             homeTeamName={homeTeam.name}
             awayTeamName={awayTeam.name}
+            advancingTeam={advancingTeam}
           />
         )}
       </div>

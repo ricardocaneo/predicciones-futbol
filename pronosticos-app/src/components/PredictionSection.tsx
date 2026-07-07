@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import PredictionForm from "./PredictionForm";
+import TeamFlag from "./TeamFlag";
 import type { Prediction, PointsResult, MatchStatus } from "@/lib/types";
 import { LIVE_WINDOW_MINUTES } from "@/lib/scoring-rules";
 
@@ -34,12 +35,14 @@ interface PredictionSectionProps {
   awayTeamId?:     string;
   homeTeamName?:   string;
   awayTeamName?:   string;
+  advancingTeam?:  { name: string; countryCode: string } | null;
 }
 
 export default function PredictionSection({
   matchId, status, minute, prediction, pointsResult,
   isOwnPrediction, canRegular, canLive, allowPrediction,
   phase, homeTeamId, awayTeamId, homeTeamName, awayTeamName,
+  advancingTeam,
 }: PredictionSectionProps) {
   const [savedMsg, setSavedMsg]   = useState(false);
   const [msgEntered, setMsgEntered] = useState(false);
@@ -89,6 +92,15 @@ export default function PredictionSection({
               <span className="font-black text-slate-800 dark:text-white text-base tabular-nums shrink-0">
                 {prediction.homeScore} - {prediction.awayScore}
               </span>
+              {advancingTeam && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-600 shrink-0 select-none">·</span>
+                  <TeamFlag countryCode={advancingTeam.countryCode} name={advancingTeam.name} size={16} shape="circle" />
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 truncate">
+                    {advancingTeam.name}
+                  </span>
+                </>
+              )}
               {savedMsg && (
                 <span
                   className="text-xs text-green-600 dark:text-green-400 truncate"
