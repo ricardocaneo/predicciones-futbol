@@ -164,12 +164,29 @@ Deno.serve(async (req) => {
       const newHome    = score?.home ?? match.home_score;
       const newAway    = score?.away ?? match.away_score;
 
-      // En eliminatorias, "ft" con empate sin pen_score = fin de 90min, no fin del partido.
-      // El partido sigue en prórroga; solo cerrar si hay ganador o pen_score confirmado.
+      // En eliminatorias, "ft" no siempre significa partido terminado:
+      // - A los 90min con empate → prórroga inminente (caso original)
+      // - Al entretiempo del alargue (105min) la API también manda "FT" aunque el partido sigue.
+      //   En ese momento el marcador puede ser no-empate (gol en primer tiempo del alargue),
+      //   pero ft_score sigue mostrando el empate de los 90min y et_score aún está vacío.
       if (mappedStatus === "finished" && match.phase !== "group") {
         const hasPenScore = !!((api.ps_score as string) || "").trim();
-        if ((api.status as string ?? "").toLowerCase().trim() === "ft" && newHome === newAway && !hasPenScore) {
-          mappedStatus = "live";
+        const hasEtScore  = !!((api.et_score as string) || "").trim();
+        const status      = (api.status as string ?? "").toLowerCase().trim();
+
+        if (status === "ft") {
+          // Caso 1: empate al pitar → sigue en prórroga o esperando penales
+          if (newHome === newAway && !hasPenScore) {
+            mappedStatus = "live";
+          }
+          // Caso 2: no-empate pero la prórroga no terminó aún (ft_score muestra empate, et_score vacío)
+          // → entretiempo del alargue con gol marcado en el primer tiempo extra
+          else if (newHome !== newAway && !hasPenScore && !hasEtScore) {
+            const ftScore = parseScore((api.ft_score as string) || null);
+            if (ftScore && ftScore.home === ftScore.away) {
+              mappedStatus = "live";
+            }
+          }
         }
       }
       const newStatus = mappedStatus;
