@@ -92,6 +92,14 @@ export interface User {
   avatarUrl?: string;
 }
 
+export interface MasterTouchBreakdownEntry {
+  champion: number;
+  runner_up: number;
+  golden_boot: number;
+  casi_casi: number;
+  total: number;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   previousRank: number;
@@ -101,6 +109,8 @@ export interface LeaderboardEntry {
   exactResults: number;
   provisionalPoints?: number[];
   provisionalPredictions?: { homeScore: number | null; awayScore: number | null }[];
+  masterTouchPoints?: number;
+  masterTouchBreakdown?: MasterTouchBreakdownEntry;
 }
 
 export interface MasterTouchPrediction {

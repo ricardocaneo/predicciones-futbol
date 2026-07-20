@@ -24,7 +24,7 @@ export default async function RankingPage() {
     matches: { status: string; home_score: number | null; away_score: number | null } | null;
   };
 
-  const [{ data: profiles }, { data: liveMatchRows }, { data: phaseRows }, { data: chatRows }] = await Promise.all([
+  const [{ data: profiles }, { data: liveMatchRows }, { data: phaseRows }, { data: chatRows }, { data: tmRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, avatar_url, total_points, last_read_at")
@@ -44,6 +44,10 @@ export default async function RankingPage() {
       .select("id, user_id, message, created_at, profiles(display_name, avatar_url)")
       .order("created_at", { ascending: true })
       .limit(100),
+    supabase
+      .from("toque_maestro_predictions")
+      .select("user_id, points, points_breakdown")
+      .not("points", "is", null),
   ]);
 
   // Paginación para superar el límite de 1000 filas de PostgREST
@@ -86,21 +90,46 @@ export default async function RankingPage() {
     }
   }
 
+  type TmRow = { user_id: string; points: number; points_breakdown: Record<string, number> | null };
+  const tmMap = new Map<string, TmRow>(
+    ((tmRows ?? []) as unknown as TmRow[]).map((r) => [r.user_id, r])
+  );
+  const showMasterTouch = tmMap.size > 0 && [...tmMap.values()].some((r) => (r.points ?? 0) > 0);
+
   const entries: LeaderboardEntry[] = (profiles ?? [])
-    .map((profile) => ({
-      rank:         0,
-      previousRank: 0,
-      user: {
-        id:        profile.id,
-        name:      profile.display_name,
-        avatar:    profile.display_name?.[0] ?? "?",
-        avatarUrl: profile.avatar_url ?? undefined,
-      },
-      points:       profile.total_points,
-      predictions:  predCounts.get(profile.id) ?? 0,
-      exactResults: exactCounts.get(profile.id) ?? 0,
-    }))
-    .sort((a, b) => b.points - a.points || b.exactResults - a.exactResults)
+    .map((profile) => {
+      const tm = tmMap.get(profile.id);
+      const tmPts = tm?.points ?? 0;
+      const tmBd = tm?.points_breakdown ?? null;
+      return {
+        rank:         0,
+        previousRank: 0,
+        user: {
+          id:        profile.id,
+          name:      profile.display_name,
+          avatar:    profile.display_name?.[0] ?? "?",
+          avatarUrl: profile.avatar_url ?? undefined,
+        },
+        points:       profile.total_points,
+        predictions:  predCounts.get(profile.id) ?? 0,
+        exactResults: exactCounts.get(profile.id) ?? 0,
+        ...(showMasterTouch && {
+          masterTouchPoints: tmPts,
+          masterTouchBreakdown: tmBd ? {
+            champion:    tmBd.champion    ?? 0,
+            runner_up:   tmBd.runner_up   ?? 0,
+            golden_boot: tmBd.golden_boot ?? 0,
+            casi_casi:   tmBd.casi_casi   ?? 0,
+            total:       tmBd.total       ?? tmPts,
+          } : undefined,
+        }),
+      };
+    })
+    .sort((a, b) => {
+      const totalA = a.points + (a.masterTouchPoints ?? 0);
+      const totalB = b.points + (b.masterTouchPoints ?? 0);
+      return totalB - totalA || b.exactResults - a.exactResults;
+    })
     .map((e, i) => ({ ...e, rank: i + 1, previousRank: i + 1 }));
 
   // ── Ranking virtual en vivo ───────────────────────────────────────────────
@@ -311,6 +340,7 @@ export default async function RankingPage() {
           entries={displayEntries}
           highlightUserId={user?.id}
           liveMatches={liveMatchInfoList.length > 0 ? liveMatchInfoList : undefined}
+          showMasterTouch={showMasterTouch}
         />
       ) : (
         <div className="text-center py-16 text-slate-400">

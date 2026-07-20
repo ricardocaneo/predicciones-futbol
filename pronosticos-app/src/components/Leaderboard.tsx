@@ -4,6 +4,7 @@ import UserAvatar from "./UserAvatar";
 import TeamFlag from "./TeamFlag";
 import { teamToCountryCode } from "@/lib/country-codes";
 import ProvisionalBadge from "./ProvisionalBadge";
+import MasterTouchBadge from "./MasterTouchBadge";
 
 type LiveMatchInfo = {
   homeTeam:  string;
@@ -37,10 +38,12 @@ export default function Leaderboard({
   entries,
   highlightUserId,
   liveMatches,
+  showMasterTouch,
 }: {
-  entries:          LeaderboardEntry[];
-  highlightUserId?: string;
-  liveMatches?:     LiveMatchInfo[];
+  entries:           LeaderboardEntry[];
+  highlightUserId?:  string;
+  liveMatches?:      LiveMatchInfo[];
+  showMasterTouch?:  boolean;
 }) {
   const isLive = liveMatches && liveMatches.length > 0;
 
@@ -66,11 +69,13 @@ export default function Leaderboard({
       ))}
 
       {/* Encabezado columnas */}
-      <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-3 items-center text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+      <div className={`grid gap-x-3 items-center text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 ${showMasterTouch ? "grid-cols-[auto_1fr_auto_auto_auto_auto]" : "grid-cols-[auto_1fr_auto_auto]"}`}>
         <span className="w-7 text-center">#</span>
         <span>Jugador</span>
         <span className="text-center w-12">Exactos</span>
         <span className="text-right w-16">Puntos</span>
+        {showMasterTouch && <span className="text-right w-10 text-amber-500">TM</span>}
+        {showMasterTouch && <span className="text-right w-16">Total</span>}
       </div>
 
       <ul>
@@ -80,7 +85,7 @@ export default function Leaderboard({
             <li key={entry.user.id}>
               <Link
                 href={`/perfil/${entry.user.id}`}
-                className={`grid grid-cols-[auto_1fr_auto_auto] gap-x-3 items-center px-4 py-3 border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
+                className={`grid gap-x-3 items-center px-4 py-3 border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 ${showMasterTouch ? "grid-cols-[auto_1fr_auto_auto_auto_auto]" : "grid-cols-[auto_1fr_auto_auto]"} ${
                   isHighlighted ? "bg-slate-50 dark:bg-slate-800/50" : ""
                 }`}
               >
@@ -132,6 +137,21 @@ export default function Leaderboard({
                     </div>
                   )}
                 </div>
+                {showMasterTouch && (
+                  <div className="w-10 flex justify-end">
+                    <MasterTouchBadge
+                      points={entry.masterTouchPoints ?? 0}
+                      breakdown={entry.masterTouchBreakdown}
+                    />
+                  </div>
+                )}
+                {showMasterTouch && (
+                  <div className="w-16 flex justify-end">
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                      {entry.points + (entry.masterTouchPoints ?? 0)}
+                    </span>
+                  </div>
+                )}
               </Link>
             </li>
           );
