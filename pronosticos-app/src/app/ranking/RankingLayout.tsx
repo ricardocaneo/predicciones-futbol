@@ -60,7 +60,11 @@ export default function RankingLayout({
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error("[chat] Realtime subscription failed:", status, err);
+        }
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, [supabase, profileMap, currentUserId]);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { sendChatMessage } from "@/app/actions/chat";
 import UserAvatar from "./UserAvatar";
 
 export type ChatMessage = {
@@ -49,9 +49,9 @@ export default function ChatBox({
   onMobileToggle: () => void;
   currentUserId: string | null;
 }) {
-  const supabase = createClient();
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [showEmojis, setShowEmojis] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -82,9 +82,14 @@ export default function ChatBox({
     if (!msg || !currentUserId || sending) return;
     setInput("");
     setShowEmojis(false);
+    setSendError(null);
     setSending(true);
-    await supabase.from("chat_messages").insert({ user_id: currentUserId, message: msg });
+    const result = await sendChatMessage(msg);
     setSending(false);
+    if (result.error) {
+      setSendError(result.error);
+      setInput(msg); // devuelve el texto para que no se pierda
+    }
   }
 
   function insertEmoji(emoji: string) {
@@ -160,6 +165,9 @@ export default function ChatBox({
             ))}
           </div>
         </div>
+      )}
+      {sendError && (
+        <p className="px-3 pb-1 text-xs text-red-500">{sendError}</p>
       )}
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="px-3 pb-3 pt-2 flex gap-2">
         <button
