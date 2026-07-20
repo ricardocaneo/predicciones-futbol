@@ -90,8 +90,8 @@ function getEventContent(event: LsEvent, homeTeam: string, awayTeam: string): Ev
       return {
         icon: "🔄",
         text: team
-          ? `${prefix}cambio en ${team}: entra ${player}${info ? `, sale ${info}` : ""}`
-          : `${prefix}cambio: entra ${player}${info ? `, sale ${info}` : ""}`,
+          ? `${prefix}cambio en ${team}: sale ${player}${info ? `, entra ${info}` : ""}`
+          : `${prefix}cambio: sale ${player}${info ? `, entra ${info}` : ""}`,
         side,
       };
 
