@@ -73,12 +73,14 @@ export function calculatePoints(
   else if (isTendencyCorrect)               { base = matrix.tendency;    category = "tendency";   }
   else if (isConsolation && matrix.consolation > 0) { base = matrix.consolation; category = "consolation"; }
 
-  // Bono de avance: si hay pick explícito úsalo, si no cae a tendencia del marcador (grupos o data antigua)
-  const advancementApplies = isKnockout && (
-    pred.advancing_team_id != null && winnerTeamId != null
-      ? pred.advancing_team_id === winnerTeamId
-      : isTendencyCorrect
-  );
+  // Bono de avance: requiere pick explícito. Sin pick → 0 pts.
+  // Provisional (winnerTeamId aún null): usa tendencia como aproximación.
+  const advancementApplies = isKnockout &&
+    pred.advancing_team_id != null && (
+      winnerTeamId != null
+        ? pred.advancing_team_id === winnerTeamId
+        : isTendencyCorrect
+    );
   const advancementBonus = advancementApplies ? (ADVANCEMENT_BONUS[phase as TournamentPhase] ?? 0) : 0;
   const total = base + advancementBonus;
 

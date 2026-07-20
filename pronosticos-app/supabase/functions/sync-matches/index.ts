@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // 1. Partidos activos o próximos en DB
     const { data: upcoming } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, starts_at, home_team_id, away_team_id")
       .eq("status", "scheduled")
       .not("external_api_id", "is", null)
       .gte("starts_at", windowStart.toISOString())
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
     const { data: liveNow } = await supabase
       .from("matches")
-      .select("id, external_api_id, status, home_score, away_score, phase, time, home_team_id, away_team_id")
+      .select("id, external_api_id, status, home_score, away_score, phase, time, starts_at, home_team_id, away_team_id")
       .eq("status", "live")
       .not("external_api_id", "is", null);
 
@@ -185,6 +185,17 @@ Deno.serve(async (req) => {
             const ftScore = parseScore((api.ft_score as string) || null);
             if (ftScore && ftScore.home === ftScore.away) {
               mappedStatus = "live";
+            }
+          }
+          // Caso 3: "FT" llegó antes de los 85 minutos del inicio → glitch de API
+          // (ej: France vs Spain SF1 cerrado incorrectamente al min 42 del primer tiempo)
+          if (mappedStatus === "finished") {
+            const matchStartsAt = (match as Record<string, unknown>).starts_at as string | undefined;
+            if (matchStartsAt) {
+              const minutesElapsed = (now.getTime() - new Date(matchStartsAt).getTime()) / 60_000;
+              if (minutesElapsed < 85) {
+                mappedStatus = "live";
+              }
             }
           }
         }

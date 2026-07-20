@@ -97,10 +97,13 @@ export function calculateMatchPoints(
   if (isKnockout) {
     const { advancingTeamId } = prediction;
     const { winnerTeamId } = match;
-    const advancementApplies =
-      advancingTeamId && winnerTeamId
+    // Requiere pick explícito. Sin pick → 0 pts.
+    // Provisional (winnerTeamId aún null): usa tendencia como aproximación.
+    const advancementApplies = advancingTeamId != null && (
+      winnerTeamId != null
         ? advancingTeamId === winnerTeamId
-        : isTendencyCorrect;
+        : isTendencyCorrect
+    );
     if (advancementApplies) advancementBonus = ADVANCEMENT_BONUS[phase] ?? 0;
   }
 
