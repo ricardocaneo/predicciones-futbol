@@ -98,6 +98,12 @@ export interface MasterTouchBreakdownEntry {
   golden_boot: number;
   casi_casi: number;
   total: number;
+  picks?: {
+    champion: string | null;
+    runner_up: string | null;
+    golden_boot: string | null;
+    golden_boot_team: string | null;
+  };
 }
 
 export interface LeaderboardEntry {

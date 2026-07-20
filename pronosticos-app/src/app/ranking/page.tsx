@@ -90,7 +90,8 @@ export default async function RankingPage() {
     }
   }
 
-  type TmRow = { user_id: string; points: number; points_breakdown: Record<string, number> | null };
+  type TmPicks = { champion: string | null; runner_up: string | null; golden_boot: string | null; golden_boot_team: string | null };
+  type TmRow = { user_id: string; points: number; points_breakdown: Record<string, number> & { picks?: TmPicks } | null };
   const tmMap = new Map<string, TmRow>(
     ((tmRows ?? []) as unknown as TmRow[]).map((r) => [r.user_id, r])
   );
@@ -121,6 +122,7 @@ export default async function RankingPage() {
             golden_boot: tmBd.golden_boot ?? 0,
             casi_casi:   tmBd.casi_casi   ?? 0,
             total:       tmBd.total       ?? tmPts,
+            picks:       tmBd.picks,
           } : undefined,
         }),
       };
