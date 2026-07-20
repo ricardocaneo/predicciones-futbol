@@ -69,11 +69,15 @@ export default function Leaderboard({
       ))}
 
       {/* Encabezado columnas */}
-      <div className={`grid gap-x-3 items-center text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 ${showMasterTouch ? "grid-cols-[auto_1fr_auto_auto_auto_auto]" : "grid-cols-[auto_1fr_auto_auto]"}`}>
+      <div className={`grid gap-x-3 items-center text-xs text-slate-400 dark:text-slate-500 font-medium px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 ${
+        showMasterTouch
+          ? "grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_auto_auto_auto_auto]"
+          : "grid-cols-[auto_1fr_auto_auto]"
+      }`}>
         <span className="w-7 text-center">#</span>
         <span>Jugador</span>
-        <span className="text-center w-12">Exactos</span>
-        <span className="text-right w-16">Puntos</span>
+        <span className={`text-center w-12 ${showMasterTouch ? "hidden sm:block" : ""}`}>Exactos</span>
+        <span className={`text-right w-16 ${showMasterTouch ? "hidden sm:block" : ""}`}>Puntos</span>
         {showMasterTouch && <span className="text-right w-10 text-amber-500">TM</span>}
         {showMasterTouch && <span className="text-right w-16">Total</span>}
       </div>
@@ -85,9 +89,11 @@ export default function Leaderboard({
             <li key={entry.user.id}>
               <Link
                 href={`/perfil/${entry.user.id}`}
-                className={`grid gap-x-3 items-center px-4 py-3 border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 ${showMasterTouch ? "grid-cols-[auto_1fr_auto_auto_auto_auto]" : "grid-cols-[auto_1fr_auto_auto]"} ${
-                  isHighlighted ? "bg-slate-50 dark:bg-slate-800/50" : ""
-                }`}
+                className={`grid gap-x-3 items-center px-4 py-3 border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 ${
+                  showMasterTouch
+                    ? "grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_auto_auto_auto_auto]"
+                    : "grid-cols-[auto_1fr_auto_auto]"
+                } ${isHighlighted ? "bg-slate-50 dark:bg-slate-800/50" : ""}`}
               >
                 <div className="flex items-center justify-center w-7">
                   <RankBadge rank={entry.rank} />
@@ -106,13 +112,18 @@ export default function Leaderboard({
                       </p>
                       {isLive && <RankChange current={entry.rank} previous={entry.previousRank} />}
                     </div>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{entry.predictions} pronósticos</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {entry.predictions} pronósticos
+                      {showMasterTouch && (
+                        <span className="sm:hidden"> · {entry.exactResults} exactos</span>
+                      )}
+                    </p>
                   </div>
                 </div>
-                <div className="w-12 text-center">
+                <div className={`w-12 text-center ${showMasterTouch ? "hidden sm:block" : ""}`}>
                   <span className="text-sm text-slate-600 dark:text-slate-300">{entry.exactResults}</span>
                 </div>
-                <div className="w-16 flex flex-col items-end gap-0.5">
+                <div className={`w-16 flex flex-col items-end gap-0.5 ${showMasterTouch ? "hidden sm:flex" : ""}`}>
                   <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
                     {entry.points}
                   </span>
